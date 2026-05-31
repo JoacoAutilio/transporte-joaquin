@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const initDB = require('./initDB');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -28,4 +29,10 @@ app.get('/api/health', (_req, res) => res.json({ status: 'ok', ts: new Date().to
 app.use((_req, res) => res.status(404).json({ error: 'Endpoint no encontrado' }));
 app.use((err, _req, res, _next) => { console.error(err); res.status(500).json({ error: 'Error interno' }); });
 
-app.listen(PORT, () => console.log(`🚛 API corriendo en puerto ${PORT}`));
+// Inicializar DB y luego arrancar el servidor
+initDB().then(() => {
+  app.listen(PORT, () => console.log(`🚛 API corriendo en puerto ${PORT}`));
+}).catch(err => {
+  console.error('Error iniciando DB:', err);
+  process.exit(1);
+});
