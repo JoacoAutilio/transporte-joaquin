@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Panel Admin — Transporte</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--navy:#0B1E3D;--or:#E8500A;--bg:#f4f6f9;--card:#fff;--bd:#e5e7eb;--txt:#111;--mt:#6b7280}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--txt)}
+
+/* LOGIN */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--navy)}
+.login-box{background:#fff;border-radius:14px;padding:40px 36px;width:100%;max-width:380px}
+.login-logo{font-size:22px;font-weight:800;color:var(--navy);margin-bottom:6px}
+.login-logo em{color:var(--or);font-style:normal}
+.login-sub{font-size:14px;color:var(--mt);margin-bottom:28px}
+.login-err{background:#fee2e2;color:#dc2626;font-size:13px;border-radius:7px;padding:9px 13px;margin-bottom:14px;display:none}
+
+/* PANEL */
+#panel-screen{display:none;min-height:100vh}
+.layout{display:flex;min-height:100vh}
+.sb{width:220px;flex-shrink:0;background:var(--navy);display:flex;flex-direction:column}
+.sb-logo{padding:20px 18px 18px;border-bottom:1px solid rgba(255,255,255,.1)}
+.sb-logo strong{font-size:16px;font-weight:800;color:#fff}
+.sb-logo strong em{color:var(--or);font-style:normal}
+.sb-empresa{font-size:12px;color:rgba(255,255,255,.45);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav-i{display:flex;align-items:center;gap:9px;padding:10px 18px;color:rgba(255,255,255,.6);font-size:13px;cursor:pointer;border-left:2px solid transparent;transition:all .15s}
+.nav-i:hover,.nav-i.on{color:#fff;background:rgba(255,255,255,.07);border-left-color:var(--or)}
+.sb-bottom{margin-top:auto;padding:16px 18px;border-top:1px solid rgba(255,255,255,.1)}
+.btn-logout{width:100%;background:rgba(255,255,255,.07);color:rgba(255,255,255,.6);border:none;padding:8px;border-radius:7px;font-size:13px;cursor:pointer}
+.btn-logout:hover{background:rgba(255,255,255,.12);color:#fff}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.topbar{background:#fff;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.topbar h1{font-size:18px;font-weight:800;color:var(--navy)}
+.topbar p{font-size:13px;color:var(--mt);margin-top:1px}
+.content{flex:1;padding:22px;overflow-y:auto}
+.pg{display:none}.pg.on{display:block}
+
+/* CARDS */
+.stats-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px}
+.sc{background:#fff;border:1px solid var(--bd);border-radius:10px;padding:14px 16px}
+.sc .lbl{font-size:11px;color:var(--mt);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.sc .val{font-size:26px;font-weight:800;color:var(--navy);line-height:1;margin-top:5px}
+.sc .sub{font-size:11px;color:var(--mt);margin-top:3px}
+.card{background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:18px}
+.card-hdr{padding:13px 18px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.card-hdr h2{font-size:15px;font-weight:700;color:var(--navy)}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse}
+th{background:#f9fafb;font-size:11px;font-weight:600;color:var(--mt);text-transform:uppercase;letter-spacing:.5px;padding:9px 16px;text-align:left;border-bottom:1px solid var(--bd)}
+td{padding:11px 16px;font-size:13px;border-bottom:1px solid #f3f4f6;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+
+/* BUTTONS */
+.btn{padding:8px 16px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:inherit}
+.btn-or{background:var(--or);color:#fff}.btn-or:hover{background:#c94208}
+.btn-outline{background:#fff;border:1px solid var(--bd);color:var(--txt)}.btn-outline:hover{background:#f9fafb}
+.btn-danger{background:#fee2e2;color:#dc2626;border:none}
+.btn-sm{padding:5px 11px;font-size:12px}
+
+/* BADGE */
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.b-camion{background:#dbeafe;color:#1d4ed8}
+.b-camioneta{background:#d1fae5;color:#065f46}
+.b-utilitaria{background:#fef3c7;color:#92400e}
+.b-activo{background:#dcfce7;color:#166534}
+.b-inactivo{background:#f3f4f6;color:#6b7280}
+
+/* FORM */
+.form-row{margin-bottom:14px}
+.form-row label{display:block;font-size:12px;font-weight:600;color:var(--mt);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+.form-row input,.form-row select,.form-row textarea{width:100%;padding:9px 13px;border:1.5px solid var(--bd);border-radius:7px;font-size:14px;font-family:inherit;outline:none;transition:border-color .15s;background:#fff}
+.form-row input:focus,.form-row select:focus{border-color:var(--or)}
+.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+
+/* MODAL */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:center;justify-content:center;padding:16px}
+.mo.open{display:flex}
+.mo-box{background:#fff;border-radius:12px;width:100%;max-width:500px;max-height:92vh;overflow-y:auto}
+.mo-hdr{padding:18px 22px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between}
+.mo-hdr h3{font-size:17px;font-weight:800;color:var(--navy)}
+.mo-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--mt);line-height:1}
+.mo-body{padding:18px 22px}
+.mo-foot{padding:14px 22px;border-top:1px solid var(--bd);display:flex;justify-content:flex-end;gap:10px}
+.toast{position:fixed;bottom:24px;right:24px;background:#111;color:#fff;padding:11px 20px;border-radius:9px;font-size:13px;z-index:300;opacity:0;transition:opacity .3s}
+.toast.show{opacity:1}
+
+/* BAR */
+.bar-w{height:6px;background:#f3f4f6;border-radius:3px;width:80px;display:inline-block;vertical-align:middle;margin-left:8px;overflow:hidden}
+.bar-f{height:100%;background:var(--or);border-radius:3px}
+.muted{color:var(--mt)}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ════════════════════════════════════════════════ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">Panel <em>Admin</em></div>
+    <div class="login-sub">Ingresá con tu cuenta de empresa</div>
+    <div class="login-err" id="login-err"></div>
+    <div class="form-row"><label>Email</label><input id="l-email" type="email" placeholder="admin@tuempresa.com" autocomplete="email"></div>
+    <div class="form-row"><label>Contraseña</label><input id="l-pass" type="password" placeholder="••••••••"></div>
+    <button class="btn btn-or" style="width:100%;padding:11px;font-size:15px;margin-top:4px" onclick="doLogin()">Ingresar →</button>
+  </div>
+</div>
+
+<!-- ══ PANEL ════════════════════════════════════════════════ -->
+<div id="panel-screen">
+<div class="layout">
+  <div class="sb">
+    <div class="sb-logo">
+      <strong>Panel <em>Admin</em></strong>
+      <div class="sb-empresa" id="sb-empresa-nombre">—</div>
+    </div>
+    <div class="nav-i on" onclick="nav('stats',this)">📊 Estadísticas</div>
+    <div class="nav-i" onclick="nav('tarifas',this)">💲 Tarifas</div>
+    <div class="nav-i" onclick="nav('choferes',this)">👤 Choferes</div>
+    <div class="nav-i" onclick="nav('vehiculos',this)">🚛 Vehículos</div>
+    <div class="sb-bottom">
+      <button class="btn-logout" onclick="doLogout()">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div><h1 id="pg-title">Estadísticas</h1><p id="pg-sub">Resumen de envíos y actividad</p></div>
+      <button class="btn btn-or btn-sm" id="top-btn" onclick="topBtnAction()">↻ Actualizar</button>
+    </div>
+    <div class="content">
+
+      <!-- STATS -->
+      <div class="pg on" id="pg-stats">
+        <div class="stats-g">
+          <div class="sc"><div class="lbl">Total envíos</div><div class="val" id="s-total">—</div></div>
+          <div class="sc"><div class="lbl">Ingresos est.</div><div class="val" id="s-ing">—</div><div class="sub">ARS</div></div>
+          <div class="sc"><div class="lbl">Ticket prom.</div><div class="val" id="s-tick">—</div></div>
+          <div class="sc"><div class="lbl">Choferes</div><div class="val" id="s-ch">—</div><div class="sub">activos</div></div>
+          <div class="sc"><div class="lbl">Vehículos</div><div class="val" id="s-ve">—</div><div class="sub">activos</div></div>
+        </div>
+        <div class="card">
+          <div class="card-hdr"><h2>Top rutas</h2></div>
+          <table><thead><tr><th>Origen</th><th>Destino</th><th>Envíos</th><th>Volumen</th></tr></thead>
+          <tbody id="rutas-tb"></tbody></table>
+        </div>
+      </div>
+
+      <!-- TARIFAS -->
+      <div class="pg" id="pg-tarifas">
+        <div class="card">
+          <table>
+            <thead><tr><th>Origen</th><th>Destino</th><th>Precio base</th><th>$/kg extra</th><th>Plazo</th><th>Estado</th><th></th></tr></thead>
+            <tbody id="tarifas-tb"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- CHOFERES -->
+      <div class="pg" id="pg-choferes">
+        <div class="card">
+          <table>
+            <thead><tr><th>Nombre</th><th>DNI</th><th>Teléfono</th><th>Email</th><th>Vehículo</th><th></th></tr></thead>
+            <tbody id="choferes-tb"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- VEHÍCULOS -->
+      <div class="pg" id="pg-vehiculos">
+        <div class="card">
+          <table>
+            <thead><tr><th>Patente</th><th>Marca / Modelo</th><th>Tipo</th><th>Año</th><th>Chofer asignado</th><th></th></tr></thead>
+            <tbody id="vehiculos-tb"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- MODAL TARIFA -->
+<div class="mo" id="mo-tarifa">
+  <div class="mo-box">
+    <div class="mo-hdr"><h3 id="mo-tarifa-title">Nueva tarifa</h3><button class="mo-close" onclick="closeMo('mo-tarifa')">✕</button></div>
+    <div class="mo-body">
+      <input type="hidden" id="t-id">
+      <div class="form-grid-2">
+        <div class="form-row"><label>Origen *</label><input id="t-origen" placeholder="Buenos Aires / AMBA"></div>
+        <div class="form-row"><label>Destino *</label><input id="t-destino" placeholder="Córdoba"></div>
+      </div>
+      <div class="form-grid-2">
+        <div class="form-row"><label>Precio base ($) *</label><input id="t-precio" type="number" min="0" placeholder="4200"></div>
+        <div class="form-row"><label>Precio por kg extra ($)</label><input id="t-kg" type="number" min="0" placeholder="28"></div>
+      </div>
+      <div class="form-grid-2">
+        <div class="form-row"><label>Plazo mín (días)</label><input id="t-pmin" type="number" min="1" placeholder="2"></div>
+        <div class="form-row"><label>Plazo máx (días)</label><input id="t-pmax" type="number" min="1" placeholder="4"></div>
+      </div>
+      <div class="form-row"><label>Descripción (opcional)</label><input id="t-desc" placeholder="Ej: incluye carga en bodega"></div>
+    </div>
+    <div class="mo-foot">
+      <button class="btn btn-outline" onclick="closeMo('mo-tarifa')">Cancelar</button>
+      <button class="btn btn-or" onclick="guardarTarifa()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CHOFER -->
+<div class="mo" id="mo-chofer">
+  <div class="mo-box">
+    <div class="mo-hdr"><h3 id="mo-chofer-title">Nuevo chofer</h3><button class="mo-close" onclick="closeMo('mo-chofer')">✕</button></div>
+    <div class="mo-body">
+      <input type="hidden" id="c-id">
+      <div class="form-grid-2">
+        <div class="form-row"><label>Nombre *</label><input id="c-nom" placeholder="Juan"></div>
+        <div class="form-row"><label>Apellido *</label><input id="c-ape" placeholder="Pérez"></div>
+      </div>
+      <div class="form-row"><label>DNI *</label><input id="c-dni" placeholder="28456789"></div>
+      <div class="form-grid-2">
+        <div class="form-row"><label>Teléfono</label><input id="c-tel" placeholder="11-1234-5678"></div>
+        <div class="form-row"><label>Email</label><input id="c-email" type="email" placeholder="juan@mail.com"></div>
+      </div>
+      <div class="form-row"><label>Vehículo asignado</label><select id="c-veh"><option value="">— Sin asignar —</option></select></div>
+    </div>
+    <div class="mo-foot">
+      <button class="btn btn-outline" onclick="closeMo('mo-chofer')">Cancelar</button>
+      <button class="btn btn-or" onclick="guardarChofer()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL VEHÍCULO -->
+<div class="mo" id="mo-veh">
+  <div class="mo-box">
+    <div class="mo-hdr"><h3 id="mo-veh-title">Nuevo vehículo</h3><button class="mo-close" onclick="closeMo('mo-veh')">✕</button></div>
+    <div class="mo-body">
+      <input type="hidden" id="v-id">
+      <div class="form-row"><label>Patente *</label><input id="v-pat" placeholder="AB123CD"></div>
+      <div class="form-grid-2">
+        <div class="form-row"><label>Marca *</label><input id="v-marca" placeholder="Mercedes-Benz"></div>
+        <div class="form-row"><label>Modelo *</label><input id="v-model" placeholder="Actros 2651"></div>
+      </div>
+      <div class="form-grid-2">
+        <div class="form-row"><label>Tipo *</label>
+          <select id="v-tipo"><option value="camion">Camión</option><option value="camioneta">Camioneta</option><option value="utilitaria">Utilitaria</option></select>
+        </div>
+        <div class="form-row"><label>Año</label><input id="v-año" type="number" placeholder="2022" min="1990" max="2030"></div>
+      </div>
+    </div>
+    <div class="mo-foot">
+      <button class="btn btn-outline" onclick="closeMo('mo-veh')">Cancelar</button>
+      <button class="btn btn-or" onclick="guardarVehiculo()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = window.location.origin;
+let TOKEN = localStorage.getItem('adm_token') || '';
+let EMPRESA = JSON.parse(localStorage.getItem('adm_empresa') || 'null');
+let vehsCache = [];
+
+const fmt = n => '$' + Math.round(+n||0).toLocaleString('es-AR');
+const h = {'Content-Type':'application/json','Authorization':'Bearer '+TOKEN};
+
+function toast(msg, ok=true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = ok ? '#166534' : '#dc2626';
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2800);
+}
+
+// ── AUTH ─────────────────────────────────────────────────────
+async function doLogin() {
+  const email = document.getElementById('l-email').value.trim();
+  const pass  = document.getElementById('l-pass').value;
+  const err   = document.getElementById('login-err');
+  err.style.display = 'none';
+  try {
+    const r = await fetch(`${API}/api/auth/login`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({email, password: pass})
+    });
+    const d = await r.json();
+    if (!r.ok) { err.textContent = d.error; err.style.display='block'; return; }
+    TOKEN = d.token;
+    EMPRESA = d.empresa;
+    localStorage.setItem('adm_token', TOKEN);
+    localStorage.setItem('adm_empresa', JSON.stringify(EMPRESA));
+    showPanel();
+  } catch(e) { err.textContent = 'Error de conexión'; err.style.display='block'; }
+}
+
+document.getElementById('l-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+function doLogout() {
+  localStorage.removeItem('adm_token');
+  localStorage.removeItem('adm_empresa');
+  TOKEN = ''; EMPRESA = null;
+  document.getElementById('panel-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+function showPanel() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('panel-screen').style.display = 'block';
+  document.getElementById('sb-empresa-nombre').textContent = EMPRESA?.nombre || '';
+  loadStats();
+}
+
+// Auto-login si hay token
+if (TOKEN && EMPRESA) showPanel();
+
+// ── NAV ───────────────────────────────────────────────────────
+const pgConfig = {
+  stats:    { title:'Estadísticas',    sub:'Resumen de envíos y actividad',      btn:'↻ Actualizar' },
+  tarifas:  { title:'Tarifas',         sub:'Rutas y precios de tu empresa',       btn:'+ Nueva tarifa' },
+  choferes: { title:'Choferes',        sub:'Gestión del personal de conducción',  btn:'+ Nuevo chofer' },
+  vehiculos:{ title:'Vehículos',       sub:'Flota de camiones y utilitarias',     btn:'+ Nuevo vehículo' },
+};
+let currentPg = 'stats';
+
+function nav(pg, el) {
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.nav-i').forEach(n=>n.classList.remove('on'));
+  document.getElementById('pg-'+pg).classList.add('on');
+  el.classList.add('on');
+  const c = pgConfig[pg];
+  document.getElementById('pg-title').textContent = c.title;
+  document.getElementById('pg-sub').textContent = c.sub;
+  document.getElementById('top-btn').textContent = c.btn;
+  currentPg = pg;
+  if(pg==='stats') loadStats();
+  if(pg==='tarifas') loadTarifas();
+  if(pg==='choferes') loadChoferes();
+  if(pg==='vehiculos') loadVehiculos();
+}
+
+function topBtnAction() {
+  if(currentPg==='stats') loadStats();
+  else if(currentPg==='tarifas') openMoTarifa();
+  else if(currentPg==='choferes') openMoChofer();
+  else if(currentPg==='vehiculos') openMoVehiculo();
+}
+
+// ── API helper ────────────────────────────────────────────────
+async function api(path, method='GET', body=null) {
+  const opts = { method, headers: {'Content-Type':'application/json','Authorization':'Bearer '+TOKEN} };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(API+path, opts);
+  if (r.status === 401) { doLogout(); return null; }
+  return r;
+}
+
+// ── STATS ─────────────────────────────────────────────────────
+async function loadStats() {
+  const r = await api('/api/admin/stats');
+  if (!r) return;
+  const d = await r.json();
+  document.getElementById('s-total').textContent = d.totales.total_envios;
+  document.getElementById('s-ing').textContent = fmt(d.totales.ingresos_totales);
+  document.getElementById('s-tick').textContent = fmt(d.totales.ticket_promedio);
+  document.getElementById('s-ch').textContent = d.choferes_activos;
+  document.getElementById('s-ve').textContent = d.vehiculos_activos;
+  const max = d.rutas[0]?.cantidad || 1;
+  document.getElementById('rutas-tb').innerHTML = d.rutas.length
+    ? d.rutas.map(r=>`<tr><td>${r.origen}</td><td>${r.destino}</td><td><strong>${r.cantidad}</strong></td>
+        <td><span class="bar-w"><span class="bar-f" style="width:${(r.cantidad/max*100).toFixed(0)}%"></span></span></td></tr>`).join('')
+    : '<tr><td colspan="4" style="text-align:center;color:var(--mt);padding:28px">Sin envíos registrados</td></tr>';
+}
+
+// ── TARIFAS ───────────────────────────────────────────────────
+async function loadTarifas() {
+  const r = await api('/api/tarifas');
+  if (!r) return;
+  const data = await r.json();
+  document.getElementById('tarifas-tb').innerHTML = data.length
+    ? data.map(t=>`<tr>
+        <td>${t.origen}</td><td>${t.destino}</td>
+        <td>${fmt(t.precio_base)}</td>
+        <td>${fmt(t.precio_por_kg)}</td>
+        <td>${t.plazo_dias_min}–${t.plazo_dias_max} días</td>
+        <td><span class="badge ${t.activo?'b-activo':'b-inactivo'}">${t.activo?'Activa':'Inactiva'}</span></td>
+        <td style="display:flex;gap:6px">
+          <button class="btn btn-sm btn-outline" onclick='editTarifa(${JSON.stringify(t)})'>Editar</button>
+          <button class="btn btn-sm btn-danger" onclick="eliminarTarifa(${t.id})">Eliminar</button>
+        </td>
+      </tr>`).join('')
+    : '<tr><td colspan="7" style="text-align:center;color:var(--mt);padding:28px">No hay tarifas cargadas. ¡Agregá la primera!</td></tr>';
+}
+
+function openMoTarifa(data=null) {
+  document.getElementById('mo-tarifa-title').textContent = data ? 'Editar tarifa' : 'Nueva tarifa';
+  document.getElementById('t-id').value = data?.id||'';
+  document.getElementById('t-origen').value = data?.origen||'';
+  document.getElementById('t-destino').value = data?.destino||'';
+  document.getElementById('t-precio').value = data?.precio_base||'';
+  document.getElementById('t-kg').value = data?.precio_por_kg||'';
+  document.getElementById('t-pmin').value = data?.plazo_dias_min||'';
+  document.getElementById('t-pmax').value = data?.plazo_dias_max||'';
+  document.getElementById('t-desc').value = data?.descripcion||'';
+  openMo('mo-tarifa');
+}
+
+function editTarifa(t) { openMoTarifa(t); }
+
+async function guardarTarifa() {
+  const id = document.getElementById('t-id').value;
+  const body = {
+    origen: document.getElementById('t-origen').value.trim(),
+    destino: document.getElementById('t-destino').value.trim(),
+    precio_base: +document.getElementById('t-precio').value,
+    precio_por_kg: +document.getElementById('t-kg').value||0,
+    plazo_dias_min: +document.getElementById('t-pmin').value||1,
+    plazo_dias_max: +document.getElementById('t-pmax').value||5,
+    descripcion: document.getElementById('t-desc').value.trim()||null,
+  };
+  if (!body.origen||!body.destino||!body.precio_base) { alert('Origen, destino y precio son obligatorios'); return; }
+  const r = await api(id?`/api/tarifas/${id}`:'/api/tarifas', id?'PUT':'POST', body);
+  if (!r) return;
+  const d = await r.json();
+  if (!r.ok) { toast(d.error, false); return; }
+  closeMo('mo-tarifa'); loadTarifas(); toast('Tarifa guardada');
+}
+
+async function eliminarTarifa(id) {
+  if (!confirm('¿Eliminar esta tarifa?')) return;
+  const r = await api(`/api/tarifas/${id}`, 'DELETE');
+  if (r?.ok) { loadTarifas(); toast('Tarifa eliminada'); }
+}
+
+// ── CHOFERES ──────────────────────────────────────────────────
+async function loadChoferes() {
+  const r = await api('/api/admin/choferes');
+  if (!r) return;
+  const data = await r.json();
+  document.getElementById('choferes-tb').innerHTML = data.length
+    ? data.map(c=>`<tr>
+        <td><strong>${c.apellido}, ${c.nombre}</strong></td>
+        <td>${c.dni}</td><td>${c.telefono||'—'}</td><td>${c.email||'—'}</td>
+        <td>${c.vehiculo_info||'<span class="muted">Sin asignar</span>'}</td>
+        <td style="display:flex;gap:6px">
+          <button class="btn btn-sm btn-outline" onclick='editChofer(${JSON.stringify(c)})'>Editar</button>
+          <button class="btn btn-sm btn-danger" onclick="eliminarChofer(${c.id})">Baja</button>
+        </td>
+      </tr>`).join('')
+    : '<tr><td colspan="6" style="text-align:center;color:var(--mt);padding:28px">No hay choferes cargados</td></tr>';
+}
+
+async function openMoChofer(data=null) {
+  const rv = await api('/api/admin/vehiculos');
+  vehsCache = rv ? await rv.json() : [];
+  document.getElementById('c-veh').innerHTML =
+    '<option value="">— Sin asignar —</option>' +
+    vehsCache.filter(v=>v.activo).map(v=>`<option value="${v.id}">${v.patente} — ${v.marca} ${v.modelo}</option>`).join('');
+  document.getElementById('mo-chofer-title').textContent = data ? 'Editar chofer' : 'Nuevo chofer';
+  document.getElementById('c-id').value = data?.id||'';
+  document.getElementById('c-nom').value = data?.nombre||'';
+  document.getElementById('c-ape').value = data?.apellido||'';
+  document.getElementById('c-dni').value = data?.dni||'';
+  document.getElementById('c-tel').value = data?.telefono||'';
+  document.getElementById('c-email').value = data?.email||'';
+  document.getElementById('c-veh').value = data?.vehiculo_id||'';
+  openMo('mo-chofer');
+}
+
+function editChofer(c) { openMoChofer(c); }
+
+async function guardarChofer() {
+  const id = document.getElementById('c-id').value;
+  const body = {
+    nombre: document.getElementById('c-nom').value.trim(),
+    apellido: document.getElementById('c-ape').value.trim(),
+    dni: document.getElementById('c-dni').value.trim(),
+    telefono: document.getElementById('c-tel').value.trim()||null,
+    email: document.getElementById('c-email').value.trim()||null,
+    vehiculo_id: document.getElementById('c-veh').value||null,
+  };
+  if (!body.nombre||!body.apellido||!body.dni) { alert('Nombre, apellido y DNI son obligatorios'); return; }
+  const r = await api(id?`/api/admin/choferes/${id}`:'/api/admin/choferes', id?'PUT':'POST', body);
+  if (!r) return;
+  const d = await r.json();
+  if (!r.ok) { toast(d.error, false); return; }
+  closeMo('mo-chofer'); loadChoferes(); toast('Chofer guardado');
+}
+
+async function eliminarChofer(id) {
+  if (!confirm('¿Dar de baja a este chofer?')) return;
+  await api(`/api/admin/choferes/${id}`, 'DELETE');
+  loadChoferes(); toast('Chofer dado de baja');
+}
+
+// ── VEHÍCULOS ─────────────────────────────────────────────────
+async function loadVehiculos() {
+  const r = await api('/api/admin/vehiculos');
+  if (!r) return;
+  const data = await r.json();
+  const tipos = {camion:'b-camion',camioneta:'b-camioneta',utilitaria:'b-utilitaria'};
+  const labels = {camion:'Camión',camioneta:'Camioneta',utilitaria:'Utilitaria'};
+  document.getElementById('vehiculos-tb').innerHTML = data.filter(v=>v.activo).length
+    ? data.filter(v=>v.activo).map(v=>`<tr>
+        <td><strong>${v.patente}</strong></td>
+        <td>${v.marca} ${v.modelo}</td>
+        <td><span class="badge ${tipos[v.tipo]}">${labels[v.tipo]}</span></td>
+        <td>${v.año||'—'}</td>
+        <td>${v.chofer_asignado||'<span class="muted">Sin asignar</span>'}</td>
+        <td style="display:flex;gap:6px">
+          <button class="btn btn-sm btn-outline" onclick='editVehiculo(${JSON.stringify(v)})'>Editar</button>
+          <button class="btn btn-sm btn-danger" onclick="eliminarVehiculo(${v.id})">Baja</button>
+        </td>
+      </tr>`).join('')
+    : '<tr><td colspan="6" style="text-align:center;color:var(--mt);padding:28px">No hay vehículos cargados</td></tr>';
+}
+
+function openMoVehiculo(data=null) {
+  document.getElementById('mo-veh-title').textContent = data ? 'Editar vehículo' : 'Nuevo vehículo';
+  document.getElementById('v-id').value = data?.id||'';
+  document.getElementById('v-pat').value = data?.patente||'';
+  document.getElementById('v-marca').value = data?.marca||'';
+  document.getElementById('v-model').value = data?.modelo||'';
+  document.getElementById('v-tipo').value = data?.tipo||'camion';
+  document.getElementById('v-año').value = data?.año||'';
+  openMo('mo-veh');
+}
+
+function editVehiculo(v) { openMoVehiculo(v); }
+
+async function guardarVehiculo() {
+  const id = document.getElementById('v-id').value;
+  const body = {
+    patente: document.getElementById('v-pat').value.trim(),
+    marca: document.getElementById('v-marca').value.trim(),
+    modelo: document.getElementById('v-model').value.trim(),
+    tipo: document.getElementById('v-tipo').value,
+    año: document.getElementById('v-año').value||null,
+  };
+  if (!body.patente||!body.marca||!body.modelo) { alert('Patente, marca y modelo son obligatorios'); return; }
+  const r = await api(id?`/api/admin/vehiculos/${id}`:'/api/admin/vehiculos', id?'PUT':'POST', body);
+  if (!r) return;
+  const d = await r.json();
+  if (!r.ok) { toast(d.error, false); return; }
+  closeMo('mo-veh'); loadVehiculos(); toast('Vehículo guardado');
+}
+
+async function eliminarVehiculo(id) {
+  if (!confirm('¿Dar de baja este vehículo?')) return;
+  await api(`/api/admin/vehiculos/${id}`, 'DELETE');
+  loadVehiculos(); toast('Vehículo dado de baja');
+}
+
+// ── MODALES ───────────────────────────────────────────────────
+function openMo(id) { document.getElementById(id).classList.add('open'); }
+function closeMo(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.mo').forEach(m =>
+  m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); })
+);
+</script>
+</body>
+</html>
