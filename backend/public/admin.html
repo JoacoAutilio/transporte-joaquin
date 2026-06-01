@@ -75,6 +75,29 @@ tr:last-child td{border-bottom:none}
 .form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
 
+/* ── RESPONSIVE ── */
+.hamburger{display:none;background:none;border:none;cursor:pointer;padding:8px;color:var(--navy)}
+.hamburger span{display:block;width:22px;height:2px;background:currentColor;margin:4px 0;transition:all .2s}
+.sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:98}
+
+@media(max-width:768px){
+  .hamburger{display:block}
+  .sb{position:fixed;top:0;left:-220px;height:100vh;z-index:99;transition:left .25s ease}
+  .sb.open{left:0}
+  .sb-overlay.open{display:block}
+  .main{margin-left:0}
+  .content{padding:14px}
+  .topbar{padding:10px 14px;gap:8px}
+  .topbar h1{font-size:16px}
+  .stats-g{grid-template-columns:repeat(2,1fr)}
+  .form-grid-2{grid-template-columns:1fr}
+  .form-grid-3{grid-template-columns:1fr}
+  .mo-box{max-width:100%;margin:0 8px}
+  table{display:block;overflow-x:auto;white-space:nowrap}
+  .page-header{flex-direction:column;align-items:flex-start}
+  #top-btn{width:100%}
+}
+
 /* MODAL */
 .mo{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:center;justify-content:center;padding:16px}
 .mo.open{display:flex}
@@ -110,7 +133,8 @@ tr:last-child td{border-bottom:none}
 <!-- ══ PANEL ════════════════════════════════════════════════ -->
 <div id="panel-screen">
 <div class="layout">
-  <div class="sb">
+  <div class="sb-overlay" id="sb-overlay" onclick="toggleSidebar()"></div>
+  <div class="sb" id="sidebar">
     <div class="sb-logo">
       <strong>Panel <em>Admin</em></strong>
       <div class="sb-empresa" id="sb-empresa-nombre">—</div>
@@ -126,7 +150,12 @@ tr:last-child td{border-bottom:none}
 
   <div class="main">
     <div class="topbar">
-      <div><h1 id="pg-title">Estadísticas</h1><p id="pg-sub">Resumen de envíos y actividad</p></div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger" onclick="toggleSidebar()" aria-label="Menú">
+          <span></span><span></span><span></span>
+        </button>
+        <div><h1 id="pg-title">Estadísticas</h1><p id="pg-sub">Resumen de envíos y actividad</p></div>
+      </div>
       <button class="btn btn-or btn-sm" id="top-btn" onclick="topBtnAction()">↻ Actualizar</button>
     </div>
     <div class="content">
@@ -561,6 +590,19 @@ function closeMo(id) { document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('.mo').forEach(m =>
   m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); })
 );
+
+// ── RESPONSIVE SIDEBAR ────────────────────────────────────────
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sb-overlay').classList.toggle('open');
+}
+// Cerrar sidebar al navegar en móvil
+var _origNav = window.nav;
+window.nav = function(pg, el) {
+  _origNav(pg, el);
+  var sb = document.getElementById('sidebar');
+  if (sb && sb.classList.contains('open')) toggleSidebar();
+};
 </script>
 </body>
 </html>
