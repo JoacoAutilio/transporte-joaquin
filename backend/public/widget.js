@@ -209,6 +209,50 @@
             </select>
           </div>
 
+          <!-- REMITENTE -->
+          <div class="cw-section">
+            <div class="cw-stitle">👤 Datos del remitente (quien envía)</div>
+            <div class="cw-g2">
+              <div class="cw-row"><label>Tipo</label>
+                <select id="cw-rem-tipo" onchange="cwTipoDoc('rem')">
+                  <option value="particular">Persona particular</option>
+                  <option value="empresa">Empresa</option>
+                </select>
+              </div>
+              <div class="cw-row" id="cw-rem-apellido-row"><label>Apellido *</label><input id="cw-rem-apellido" placeholder="Pérez"></div>
+            </div>
+            <div class="cw-g2">
+              <div class="cw-row"><label id="cw-rem-nombre-label">Nombre *</label><input id="cw-rem-nombre" placeholder="Juan"></div>
+              <div class="cw-row"><label id="cw-rem-doc-label">DNI *</label><input id="cw-rem-doc" placeholder="28456789"></div>
+            </div>
+            <div class="cw-g2">
+              <div class="cw-row"><label>Celular *</label><input id="cw-rem-cel" type="tel" placeholder="11-1234-5678"></div>
+              <div class="cw-row"><label>Email</label><input id="cw-rem-email" type="email" placeholder="juan@mail.com"></div>
+            </div>
+          </div>
+
+          <!-- DESTINATARIO -->
+          <div class="cw-section">
+            <div class="cw-stitle">📬 Datos del destinatario (quien recibe)</div>
+            <div class="cw-g2">
+              <div class="cw-row"><label>Tipo</label>
+                <select id="cw-dest-tipo" onchange="cwTipoDoc('dest')">
+                  <option value="particular">Persona particular</option>
+                  <option value="empresa">Empresa</option>
+                </select>
+              </div>
+              <div class="cw-row" id="cw-dest-apellido-row"><label>Apellido *</label><input id="cw-dest-apellido" placeholder="García"></div>
+            </div>
+            <div class="cw-g2">
+              <div class="cw-row"><label id="cw-dest-nombre-label">Nombre *</label><input id="cw-dest-nombre" placeholder="María"></div>
+              <div class="cw-row"><label id="cw-dest-doc-label">DNI *</label><input id="cw-dest-doc" placeholder="30123456"></div>
+            </div>
+            <div class="cw-g2">
+              <div class="cw-row"><label>Celular *</label><input id="cw-dest-cel" type="tel" placeholder="11-9876-5432"></div>
+              <div class="cw-row"><label>Email</label><input id="cw-dest-email" type="email" placeholder="maria@mail.com"></div>
+            </div>
+          </div>
+
           <button id="cw-btn">Calcular precio →</button>
           <div id="cw-loading">Calculando...</div>
           <div id="cw-error"></div>
@@ -223,6 +267,8 @@
               <div class="cw-dr"><span>Peso efectivo</span><span id="cw-r-peso"></span></div>
               <div class="cw-dr"><span>Modalidad</span><span id="cw-r-modal"></span></div>
               <div class="cw-dr"><span>Pago</span><span id="cw-r-pago"></span></div>
+              <div class="cw-dr"><span>Remitente</span><span id="cw-r-remitente"></span></div>
+              <div class="cw-dr"><span>Destinatario</span><span id="cw-r-destinatario"></span></div>
               <div class="cw-dr total"><span>Total con IVA</span><span id="cw-r-total"></span></div>
             </div>
             <div class="cw-seguimiento">
@@ -263,7 +309,20 @@
       </div>
     `;
 
-    // ── Tabs ────────────────────────────────────────────────
+    // ── Tipo doc (particular/empresa) ───────────────────────
+    window.cwTipoDoc = function(pre) {
+      const tipo = document.getElementById(`cw-${pre}-tipo`).value;
+      const esEmpresa = tipo === 'empresa';
+      document.getElementById(`cw-${pre}-nombre-label`).textContent = esEmpresa ? 'Razón social *' : 'Nombre *';
+      document.getElementById(`cw-${pre}-doc-label`).textContent    = esEmpresa ? 'CUIT *' : 'DNI *';
+      document.getElementById(`cw-${pre}-nombre`).placeholder       = esEmpresa ? 'Transportes SA' : 'Juan';
+      document.getElementById(`cw-${pre}-doc`).placeholder          = esEmpresa ? '30-12345678-9' : '28456789';
+      const apRow = document.getElementById(`cw-${pre}-apellido-row`);
+      apRow.style.display = esEmpresa ? 'none' : '';
+      if (esEmpresa) document.getElementById(`cw-${pre}-apellido`).value = '';
+    };
+
+    
     window.cwTab = function(panel, btn) {
       document.querySelectorAll('.cw-panel').forEach(p => p.classList.remove('on'));
       document.querySelectorAll('.cw-tab').forEach(b => b.classList.remove('on'));
@@ -326,6 +385,24 @@
       if (!provDestino||!ciudadDestino) { errEl.textContent='Seleccioná provincia y ciudad de destino.'; errEl.style.display='block'; return; }
       if (!peso_kg) { errEl.textContent='Ingresá el peso del envío.'; errEl.style.display='block'; return; }
 
+      // Validar remitente
+      const remNombre  = document.getElementById('cw-rem-nombre').value.trim();
+      const remDoc     = document.getElementById('cw-rem-doc').value.trim();
+      const remCel     = document.getElementById('cw-rem-cel').value.trim();
+      const remTipo    = document.getElementById('cw-rem-tipo').value;
+      const remApellido= document.getElementById('cw-rem-apellido').value.trim();
+      if (!remNombre||!remDoc||!remCel) { errEl.textContent='Completá los datos del remitente (nombre/razón social, DNI/CUIT y celular).'; errEl.style.display='block'; return; }
+      if (remTipo==='particular'&&!remApellido) { errEl.textContent='Ingresá el apellido del remitente.'; errEl.style.display='block'; return; }
+
+      // Validar destinatario
+      const destNombre  = document.getElementById('cw-dest-nombre').value.trim();
+      const destDoc     = document.getElementById('cw-dest-doc').value.trim();
+      const destCel     = document.getElementById('cw-dest-cel').value.trim();
+      const destTipo    = document.getElementById('cw-dest-tipo').value;
+      const destApellido= document.getElementById('cw-dest-apellido').value.trim();
+      if (!destNombre||!destDoc||!destCel) { errEl.textContent='Completá los datos del destinatario (nombre/razón social, DNI/CUIT y celular).'; errEl.style.display='block'; return; }
+      if (destTipo==='particular'&&!destApellido) { errEl.textContent='Ingresá el apellido del destinatario.'; errEl.style.display='block'; return; }
+
       const origen  = `${ciudadOrigen} (${provOrigen})`;
       const destino = `${ciudadDestino} (${provDestino})`;
       const volumen_m3 = largo>0&&ancho>0&&alto>0 ? (largo*ancho*alto/1000000)*bultos : 0;
@@ -355,6 +432,13 @@
         document.getElementById('cw-r-modal').textContent  = mLabels[modalidad];
         document.getElementById('cw-r-pago').textContent   = pLabels[pago];
         document.getElementById('cw-r-total').textContent  = fmt(conIVA);
+
+        // Mostrar remitente y destinatario en resultado
+        const remLabel = remTipo==='empresa' ? remNombre : `${remApellido}, ${remNombre}`;
+        const destLabel= destTipo==='empresa'? destNombre: `${destApellido}, ${destNombre}`;
+        document.getElementById('cw-r-remitente').textContent  = remLabel;
+        document.getElementById('cw-r-destinatario').textContent = destLabel;
+
         document.getElementById('cw-codigo').textContent   = generarCodigo();
         resEl.style.display='block';
       } catch(e) {
