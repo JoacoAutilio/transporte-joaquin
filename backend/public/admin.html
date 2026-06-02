@@ -219,61 +219,41 @@ tr:last-child td{border-bottom:none}
       <input type="hidden" id="t-id">
       <div class="form-grid-2">
         <div class="form-row"><label>Provincia origen *</label>
-          <select id="t-origen">
+          <select id="t-prov-origen" onchange="tarifaCiudades('origen')">
             <option value="">— Seleccioná —</option>
-            <option>Buenos Aires</option>
-            <option>CABA</option>
-            <option>Córdoba</option>
-            <option>Santa Fe</option>
-            <option>Mendoza</option>
-            <option>Tucumán</option>
-            <option>Salta</option>
-            <option>Misiones</option>
-            <option>Entre Ríos</option>
-            <option>Chaco</option>
-            <option>Corrientes</option>
-            <option>Jujuy</option>
-            <option>Río Negro</option>
-            <option>Neuquén</option>
-            <option>San Juan</option>
-            <option>San Luis</option>
-            <option>La Pampa</option>
-            <option>Formosa</option>
-            <option>Catamarca</option>
-            <option>La Rioja</option>
-            <option>Santiago del Estero</option>
-            <option>Chubut</option>
-            <option>Santa Cruz</option>
-            <option>Tierra del Fuego</option>
+            <option>Buenos Aires</option><option>CABA</option><option>Córdoba</option>
+            <option>Santa Fe</option><option>Mendoza</option><option>Tucumán</option>
+            <option>Salta</option><option>Misiones</option><option>Entre Ríos</option>
+            <option>Chaco</option><option>Corrientes</option><option>Jujuy</option>
+            <option>Río Negro</option><option>Neuquén</option><option>San Juan</option>
+            <option>San Luis</option><option>La Pampa</option><option>Formosa</option>
+            <option>Catamarca</option><option>La Rioja</option><option>Santiago del Estero</option>
+            <option>Chubut</option><option>Santa Cruz</option><option>Tierra del Fuego</option>
           </select>
         </div>
+        <div class="form-row"><label>Localidad origen</label>
+          <select id="t-loc-origen" disabled>
+            <option value="">— Toda la provincia —</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-grid-2">
         <div class="form-row"><label>Provincia destino *</label>
-          <select id="t-destino">
+          <select id="t-prov-destino" onchange="tarifaCiudades('destino')">
             <option value="">— Seleccioná —</option>
-            <option>Buenos Aires</option>
-            <option>CABA</option>
-            <option>Córdoba</option>
-            <option>Santa Fe</option>
-            <option>Mendoza</option>
-            <option>Tucumán</option>
-            <option>Salta</option>
-            <option>Misiones</option>
-            <option>Entre Ríos</option>
-            <option>Chaco</option>
-            <option>Corrientes</option>
-            <option>Jujuy</option>
-            <option>Río Negro</option>
-            <option>Neuquén</option>
-            <option>San Juan</option>
-            <option>San Luis</option>
-            <option>La Pampa</option>
-            <option>Formosa</option>
-            <option>Catamarca</option>
-            <option>La Rioja</option>
-            <option>Santiago del Estero</option>
-            <option>Chubut</option>
-            <option>Santa Cruz</option>
-            <option>Tierra del Fuego</option>
+            <option>Buenos Aires</option><option>CABA</option><option>Córdoba</option>
+            <option>Santa Fe</option><option>Mendoza</option><option>Tucumán</option>
+            <option>Salta</option><option>Misiones</option><option>Entre Ríos</option>
+            <option>Chaco</option><option>Corrientes</option><option>Jujuy</option>
+            <option>Río Negro</option><option>Neuquén</option><option>San Juan</option>
+            <option>San Luis</option><option>La Pampa</option><option>Formosa</option>
+            <option>Catamarca</option><option>La Rioja</option><option>Santiago del Estero</option>
+            <option>Chubut</option><option>Santa Cruz</option><option>Tierra del Fuego</option>
+          </select>
+        </div>
+        <div class="form-row"><label>Localidad destino</label>
+          <select id="t-loc-destino" disabled>
+            <option value="">— Toda la provincia —</option>
           </select>
         </div>
       </div>
@@ -484,8 +464,25 @@ async function loadTarifas() {
 function openMoTarifa(data=null) {
   document.getElementById('mo-tarifa-title').textContent = data ? 'Editar tarifa' : 'Nueva tarifa';
   document.getElementById('t-id').value = data?.id||'';
-  document.getElementById('t-origen').value = data?.origen||'';
-  document.getElementById('t-destino').value = data?.destino||'';
+
+  // Parsear origen/destino guardado: puede ser "Provincia" o "Localidad (Provincia)"
+  function parsearRuta(str) {
+    if (!str) return { prov: '', loc: '' };
+    const m = str.match(/^(.+)\s\(([^)]+)\)$/);
+    if (m) return { prov: m[2].trim(), loc: m[1].trim() };
+    return { prov: str.trim(), loc: '' };
+  }
+
+  const orig = parsearRuta(data?.origen);
+  const dest = parsearRuta(data?.destino);
+
+  document.getElementById('t-prov-origen').value = orig.prov;
+  tarifaCiudades('origen');
+  document.getElementById('t-loc-origen').value = orig.loc;
+
+  document.getElementById('t-prov-destino').value = dest.prov;
+  tarifaCiudades('destino');
+  document.getElementById('t-loc-destino').value = dest.loc;
   document.getElementById('t-precio').value = data?.precio_base||'';
   document.getElementById('t-kg').value = data?.precio_por_kg||'';
   document.getElementById('t-pmin').value = data?.plazo_dias_min||'';
@@ -498,16 +495,22 @@ function editTarifa(t) { openMoTarifa(t); }
 
 async function guardarTarifa() {
   const id = document.getElementById('t-id').value;
+  const provOrigen  = document.getElementById("t-prov-origen").value.trim();
+  const locOrigen   = document.getElementById("t-loc-origen").value.trim();
+  const provDestino = document.getElementById("t-prov-destino").value.trim();
+  const locDestino  = document.getElementById("t-loc-destino").value.trim();
+  const origen  = locOrigen  ? locOrigen  + " (" + provOrigen  + ")" : provOrigen;
+  const destino = locDestino ? locDestino + " (" + provDestino + ")" : provDestino;
   const body = {
-    origen: document.getElementById('t-origen').value.trim(),
-    destino: document.getElementById('t-destino').value.trim(),
-    precio_base: +document.getElementById('t-precio').value,
-    precio_por_kg: +document.getElementById('t-kg').value||0,
-    plazo_dias_min: +document.getElementById('t-pmin').value||1,
-    plazo_dias_max: +document.getElementById('t-pmax').value||5,
-    descripcion: document.getElementById('t-desc').value.trim()||null,
+    origen,
+    destino,
+    precio_base: +document.getElementById("t-precio").value,
+    precio_por_kg: +document.getElementById("t-kg").value||0,
+    plazo_dias_min: +document.getElementById("t-pmin").value||1,
+    plazo_dias_max: +document.getElementById("t-pmax").value||5,
+    descripcion: document.getElementById("t-desc").value.trim()||null,
   };
-  if (!body.origen||!body.destino||!body.precio_base) { alert('Origen, destino y precio son obligatorios'); return; }
+  if (!provOrigen||!provDestino||!body.precio_base) { alert("Provincia origen, destino y precio son obligatorios"); return; }
   const r = await api(id?`/api/tarifas/${id}`:'/api/tarifas', id?'PUT':'POST', body);
   if (!r) return;
   const d = await r.json();
@@ -640,7 +643,43 @@ async function eliminarVehiculo(id) {
   loadVehiculos(); toast('Vehículo dado de baja');
 }
 
-// ── MODALES ───────────────────────────────────────────────────
+// ── CIUDADES POR PROVINCIA (tarifas) ─────────────────────────
+const PROVINCIAS_ADMIN = {
+  "Buenos Aires": ["AMBA / Gran Buenos Aires","La Plata","Mar del Plata","Bahía Blanca","Tandil","Quilmes","Lomas de Zamora","Lanús","General San Martín","Morón","Tigre","San Isidro","Merlo","Moreno","La Matanza","Almirante Brown","Florencio Varela","Berazategui","Avellaneda","Zárate","Campana","Junín","Pergamino","Necochea","Olavarría","Azul"],
+  "CABA": ["Ciudad Autónoma de Buenos Aires"],
+  "Córdoba": ["Córdoba Capital","Río Cuarto","Villa María","San Francisco","Alta Gracia","Bell Ville","Villa Carlos Paz","Cosquín","Jesús María","Marcos Juárez","La Falda","Cruz del Eje"],
+  "Santa Fe": ["Rosario","Santa Fe Capital","Rafaela","Venado Tuerto","Santo Tomé","Reconquista","Esperanza","Casilda","Cañada de Gómez"],
+  "Mendoza": ["Mendoza Capital","San Rafael","Godoy Cruz","Luján de Cuyo","Maipú","Rivadavia","Tunuyán","Malargüe","Las Heras"],
+  "Tucumán": ["San Miguel de Tucumán","Concepción","Banda del Río Salí","Yerba Buena","Aguilares","Monteros","Tafí Viejo"],
+  "Salta": ["Salta Capital","San Ramón de la Nueva Orán","Tartagal","Metán","Rosario de la Frontera","Cafayate","General Güemes"],
+  "Misiones": ["Posadas","Oberá","Eldorado","Puerto Iguazú","Apóstoles","Leandro N. Alem"],
+  "Entre Ríos": ["Paraná","Concordia","Gualeguaychú","Concepción del Uruguay","Gualeguay","Villaguay","Chajarí"],
+  "Chaco": ["Resistencia","Presidencia Roque Sáenz Peña","Villa Ángela","Charata","Barranqueras"],
+  "Corrientes": ["Corrientes Capital","Goya","Paso de los Libres","Curuzú Cuatiá","Mercedes","Santo Tomé"],
+  "Jujuy": ["San Salvador de Jujuy","Palpalá","San Pedro de Jujuy","Libertador General San Martín","Humahuaca"],
+  "Río Negro": ["Viedma","Bariloche","Cipolletti","General Roca","Allen","El Bolsón"],
+  "Neuquén": ["Neuquén Capital","Cutral-Có","Plaza Huincul","Zapala","San Martín de los Andes","Villa La Angostura"],
+  "San Juan": ["San Juan Capital","Rawson","Chimbas","Rivadavia","Santa Lucía","Caucete"],
+  "San Luis": ["San Luis Capital","Villa Mercedes","Merlo","Concarán","Justo Daract"],
+  "La Pampa": ["Santa Rosa","General Pico","Toay","Eduardo Castex","General Acha"],
+  "Formosa": ["Formosa Capital","Clorinda","Pirané"],
+  "Catamarca": ["San Fernando del Valle de Catamarca","Tinogasta","Andalgalá","Belén","Santa María"],
+  "La Rioja": ["La Rioja Capital","Chilecito","Aimogasta","Chepes","Chamical"],
+  "Santiago del Estero": ["Santiago del Estero Capital","La Banda","Termas de Río Hondo","Añatuya","Frías"],
+  "Chubut": ["Rawson","Comodoro Rivadavia","Puerto Madryn","Trelew","Esquel","Rada Tilly"],
+  "Santa Cruz": ["Río Gallegos","Caleta Olivia","Pico Truncado","Puerto Deseado","El Calafate"],
+  "Tierra del Fuego": ["Ushuaia","Río Grande","Tolhuin"],
+};
+
+function tarifaCiudades(tipo) {
+  const prov = document.getElementById('t-prov-' + tipo).value;
+  const sel  = document.getElementById('t-loc-' + tipo);
+  const cs   = PROVINCIAS_ADMIN[prov] || [];
+  sel.disabled = !cs.length;
+  sel.innerHTML = '<option value="">— Toda la provincia —</option>' +
+    cs.map(c => `<option value="${c}">${c}</option>`).join('');
+}
+
 function openMo(id) { document.getElementById(id).classList.add('open'); }
 function closeMo(id) { document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('.mo').forEach(m =>
