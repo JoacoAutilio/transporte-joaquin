@@ -8,6 +8,7 @@ async function initDB() {
     'schema_widget.sql',
     'schema_admin.sql',
     'schema_auth.sql',
+    'schema_pagos.sql',
   ];
 
   for (const file of schemas) {

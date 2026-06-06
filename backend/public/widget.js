@@ -311,10 +311,9 @@
               '<div class="cw-dr total"><span>Total con IVA</span><span id="cw-r-total"></span></div>',
             '</div>',
             '<div class="cw-seguimiento">',
-              '<p>Tu código de seguimiento</p>',
-              '<div class="cw-codigo" id="cw-codigo">—</div>',
-              '<button class="cw-copy" onclick="cwCopiar()">Copiar código</button>',
-              '<p style="margin-top:8px;font-size:11px">Guardalo para rastrear tu envío</p>',
+              '<p>Para confirmar tu envío y obtener el código de seguimiento</p>',
+              '<button class="cw-copy" style="background:' + c1 + ';border:none;color:#fff;padding:11px 24px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;margin-top:6px;width:100%" id="cw-btn-pagar" onclick="cwPagar()">💳 Pagar y confirmar envío</button>',
+              '<div id="cw-pago-loading" style="font-size:12px;color:rgba(255,255,255,.6);margin-top:8px;display:none">Redirigiendo a Mercado Pago...</div>',
             '</div>',
             emp.telefono ? '<div style="margin-top:14px;font-size:13px;color:rgba(255,255,255,.55)">¿Consultas? <strong style="color:#fff">' + emp.telefono + '</strong></div>' : '',
           '</div>',
@@ -524,7 +523,25 @@
         document.getElementById("cw-r-dest").textContent    = destLabel;
         document.getElementById("cw-r-dir-dest").textContent= dirDest;
         document.getElementById("cw-r-total").textContent   = fmt(conIVA);
-        document.getElementById("cw-codigo").textContent    = generarCodigo();
+
+        // Guardar datos para el pago
+        window._cwCotizacion = {
+          origen, destino, peso_kg, volumen_m3,
+          tipo_servicio: servicio,
+          precio_total: conIVA,
+          modalidad, pago,
+          remitente: {
+            tipo: remTipo, nombre: remNom, apellido: remAp, doc: remDoc,
+            celular: remCel, email: val("cw-rem-email"),
+            calle: remCalle, numero: remNum, entre: remEntre, cp: remCP
+          },
+          destinatario: {
+            tipo: destTipo, nombre: destNom, apellido: destAp, doc: destDoc,
+            celular: destCel, email: val("cw-dest-email"),
+            calle: destCalle, numero: destNum, entre: destEntre, cp: destCP
+          }
+        };
+
         resEl.style.display = "block";
       } catch(e) {
         err(e.message);
@@ -533,7 +550,31 @@
       }
     });
 
-    // ── Rastrear ──────────────────────────────────────────────
+    // ── Pagar ─────────────────────────────────────────────────
+    window.cwPagar = async function() {
+      if (!window._cwCotizacion) return;
+      var btn  = document.getElementById("cw-btn-pagar");
+      var load = document.getElementById("cw-pago-loading");
+      btn.disabled = true;
+      load.style.display = "block";
+      try {
+        var r = await fetch(API_BASE + "/api/pagos/" + empresa + "/crear", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(window._cwCotizacion)
+        });
+        var d = await r.json();
+        if (!r.ok) throw new Error(d.error || "Error al crear el pago");
+        // Redirigir a Mercado Pago
+        window.location.href = d.init_point;
+      } catch(e) {
+        alert("Error: " + e.message);
+        btn.disabled = false;
+        load.style.display = "none";
+      }
+    };
+
+    
     window.cwRastrear = async function() {
       var num   = document.getElementById("cw-track-input").value.trim().toUpperCase();
       var errEl = document.getElementById("cw-track-error");

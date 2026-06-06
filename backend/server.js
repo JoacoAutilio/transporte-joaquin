@@ -24,6 +24,7 @@ app.use('/api/clientes', require('./routes/clientes'));
 app.use('/api/widget',   require('./routes/widget'));
 app.use('/api/admin',    require('./routes/admin'));
 app.use('/api/tarifas',  require('./routes/tarifas'));
+app.use('/api/pagos',    require('./routes/pagos'));
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
 app.use((_req, res) => res.status(404).json({ error: 'Endpoint no encontrado' }));

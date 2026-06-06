@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pago pendiente</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#fffbeb;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:#fff;border-radius:14px;padding:40px 32px;max-width:440px;width:100%;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.08)}
+.icon{font-size:56px;margin-bottom:16px}
+h1{font-size:22px;font-weight:800;color:#92400e;margin-bottom:8px}
+p{font-size:14px;color:#6b7280;line-height:1.6;margin-bottom:20px}
+.codigo-box{background:#fffbeb;border:2px solid #fde68a;border-radius:10px;padding:16px;margin-bottom:20px}
+.codigo-label{font-size:12px;font-weight:600;color:#92400e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.codigo{font-size:24px;font-weight:800;color:#92400e;letter-spacing:3px}
+.btn{display:block;background:#E8500A;color:#fff;border:none;padding:13px;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;width:100%}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="icon">⏳</div>
+  <h1>Pago en proceso</h1>
+  <p>Tu pago está siendo procesado. Una vez confirmado recibirás el código de seguimiento. Guardá este número por las dudas.</p>
+  <div class="codigo-box">
+    <div class="codigo-label">Número de referencia</div>
+    <div class="codigo" id="codigo">—</div>
+  </div>
+  <button class="btn" onclick="window.location='/'">Volver al inicio</button>
+</div>
+<script>
+  var params = new URLSearchParams(window.location.search);
+  var numero = params.get('numero');
+  if (numero) document.getElementById('codigo').textContent = numero;
+</script>
+</body>
+</html>
