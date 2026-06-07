@@ -143,6 +143,7 @@ tr:last-child td{border-bottom:none}
     <div class="nav-i" onclick="nav('tarifas',this)">💲 Tarifas</div>
     <div class="nav-i" onclick="nav('choferes',this)">👤 Choferes</div>
     <div class="nav-i" onclick="nav('vehiculos',this)">🚛 Vehículos</div>
+    <div class="nav-i" onclick="nav('configuracion',this)">⚙️ Configuración</div>
     <div class="sb-bottom">
       <button class="btn-logout" onclick="doLogout()">Cerrar sesión</button>
     </div>
@@ -203,6 +204,59 @@ tr:last-child td{border-bottom:none}
             <thead><tr><th>Patente</th><th>Marca / Modelo</th><th>Tipo</th><th>Año</th><th>Chofer asignado</th><th></th></tr></thead>
             <tbody id="vehiculos-tb"></tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- CONFIGURACIÓN -->
+      <div class="pg" id="pg-configuracion">
+        <div class="card" style="max-width:560px">
+          <div class="card-hdr"><h2>⚙️ Configuración de la empresa</h2></div>
+          <div style="padding:20px">
+
+            <div class="form-row">
+              <label>Nombre de la empresa</label>
+              <input id="cfg-nombre" placeholder="Ej: Transporte Juan">
+            </div>
+            <div class="form-row">
+              <label>Teléfono de contacto</label>
+              <input id="cfg-tel" placeholder="0800-000-0000">
+            </div>
+            <div class="form-row">
+              <label>Color principal (hex)</label>
+              <div style="display:flex;gap:10px;align-items:center">
+                <input type="color" id="cfg-color-pick" style="width:44px;height:40px;border:1.5px solid var(--bd);border-radius:8px;cursor:pointer;padding:2px" oninput="document.getElementById('cfg-color').value=this.value">
+                <input id="cfg-color" placeholder="#E8500A" maxlength="7" style="flex:1" oninput="if(/^#[0-9A-Fa-f]{6}$/.test(this.value))document.getElementById('cfg-color-pick').value=this.value">
+              </div>
+            </div>
+
+            <hr style="border:none;border-top:1px solid var(--bd);margin:20px 0">
+
+            <div style="background:#fff8e1;border:1px solid #ffd54f;border-radius:8px;padding:14px;margin-bottom:16px;font-size:13px;color:#5d4037;line-height:1.6">
+              <strong>💳 Mercado Pago</strong><br>
+              Pegá tu Access Token para que los pagos vayan directo a tu cuenta. Lo encontrás en <strong>mercadopago.com.ar/developers</strong> → tu aplicación → Credenciales productivas → Access Token.
+            </div>
+
+            <div class="form-row">
+              <label>Access Token de Mercado Pago</label>
+              <input id="cfg-mp-token" type="password" placeholder="APP_USR-...">
+              <div style="font-size:11px;color:var(--mt);margin-top:4px">Se guarda encriptado. Sin esto los pagos van a la cuenta de la plataforma.</div>
+            </div>
+
+            <hr style="border:none;border-top:1px solid var(--bd);margin:20px 0">
+
+            <div class="form-row">
+              <label>Nueva contraseña (opcional)</label>
+              <input id="cfg-pass" type="password" placeholder="Mín. 8 caracteres">
+            </div>
+            <div class="form-row">
+              <label>Repetir nueva contraseña</label>
+              <input id="cfg-pass2" type="password" placeholder="Igual que arriba">
+            </div>
+
+            <div id="cfg-msg" style="font-size:13px;padding:10px;border-radius:7px;display:none;margin-bottom:12px"></div>
+
+            <button class="btn btn-or" onclick="guardarConfig()">Guardar cambios</button>
+          </div>
         </div>
       </div>
 
@@ -406,6 +460,7 @@ function nav(pg, el) {
   if(pg==='tarifas') loadTarifas();
   if(pg==='choferes') loadChoferes();
   if(pg==='vehiculos') loadVehiculos();
+  if(pg==='configuracion') loadConfig();
 }
 
 function topBtnAction() {
@@ -686,7 +741,77 @@ document.querySelectorAll('.mo').forEach(m =>
   m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); })
 );
 
-// ── RESPONSIVE SIDEBAR ────────────────────────────────────────
+// ── CONFIGURACIÓN ─────────────────────────────────────────────
+async function loadConfig() {
+  const r = await api('/api/auth/me');
+  if (!r) return;
+  const d = await r.json();
+  document.getElementById('cfg-nombre').value    = d.nombre || '';
+  document.getElementById('cfg-tel').value       = d.telefono || '';
+  document.getElementById('cfg-color').value     = d.color_primario || '#E8500A';
+  document.getElementById('cfg-color-pick').value= d.color_primario || '#E8500A';
+}
+
+async function guardarConfig() {
+  const nombre  = document.getElementById('cfg-nombre').value.trim();
+  const tel     = document.getElementById('cfg-tel').value.trim();
+  const color   = document.getElementById('cfg-color').value.trim();
+  const mpToken = document.getElementById('cfg-mp-token').value.trim();
+  const pass    = document.getElementById('cfg-pass').value;
+  const pass2   = document.getElementById('cfg-pass2').value;
+  const msgEl   = document.getElementById('cfg-msg');
+
+  msgEl.style.display = 'none';
+
+  if (pass && pass.length < 8) {
+    msgEl.textContent = 'La contraseña debe tener al menos 8 caracteres.';
+    msgEl.style.background = '#fee2e2'; msgEl.style.color = '#dc2626';
+    msgEl.style.display = 'block'; return;
+  }
+  if (pass && pass !== pass2) {
+    msgEl.textContent = 'Las contraseñas no coinciden.';
+    msgEl.style.background = '#fee2e2'; msgEl.style.color = '#dc2626';
+    msgEl.style.display = 'block'; return;
+  }
+
+  const body = { nombre, telefono: tel || null, color_primario: color || null };
+  if (mpToken) body.mp_access_token = mpToken;
+
+  const r = await api('/api/admin/configuracion', 'PUT', body);
+  if (!r) return;
+  const d = await r.json();
+
+  if (!r.ok) {
+    msgEl.textContent = d.error || 'Error al guardar.';
+    msgEl.style.background = '#fee2e2'; msgEl.style.color = '#dc2626';
+    msgEl.style.display = 'block'; return;
+  }
+
+  // Cambiar contraseña si se ingresó
+  if (pass) {
+    const rp = await api('/api/auth/change-password', 'POST', {
+      password_actual: prompt('Ingresá tu contraseña actual para confirmar:'),
+      password_nuevo: pass
+    });
+    if (rp && !rp.ok) {
+      msgEl.textContent = 'Datos guardados pero no se pudo cambiar la contraseña.';
+      msgEl.style.background = '#fff8e1'; msgEl.style.color = '#92400e';
+      msgEl.style.display = 'block'; return;
+    }
+    document.getElementById('cfg-pass').value = '';
+    document.getElementById('cfg-pass2').value = '';
+  }
+
+  // Actualizar nombre en sidebar
+  if (nombre) document.getElementById('sb-empresa-nombre').textContent = nombre;
+  document.getElementById('cfg-mp-token').value = '';
+
+  msgEl.textContent = '✅ Cambios guardados correctamente.';
+  msgEl.style.background = '#f0fdf4'; msgEl.style.color = '#166534';
+  msgEl.style.display = 'block';
+}
+
+
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');
   document.getElementById('sb-overlay').classList.toggle('open');

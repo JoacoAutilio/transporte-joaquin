@@ -139,4 +139,22 @@ router.get('/stats', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── CONFIGURACIÓN ─────────────────────────────────────────────
+
+router.put('/configuracion', async (req, res) => {
+  const { nombre, telefono, color_primario, mp_access_token } = req.body;
+  try {
+    await db.query(
+      `UPDATE empresas SET
+         nombre = COALESCE($1, nombre),
+         telefono = COALESCE($2, telefono),
+         color_primario = COALESCE($3, color_primario),
+         mp_access_token = COALESCE($4, mp_access_token)
+       WHERE id = $5`,
+      [nombre || null, telefono || null, color_primario || null, mp_access_token || null, req.empresa.id]
+    );
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;
