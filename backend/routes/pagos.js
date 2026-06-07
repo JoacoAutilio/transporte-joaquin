@@ -18,6 +18,39 @@ router.get('/detalle/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// GET /api/pagos/confirmar/:numero — confirmar pago por numero de seguimiento (desde página de éxito)
+router.get('/confirmar/:numero', async (req, res) => {
+  try {
+    const { rows: [envio] } = await db.query(
+      `SELECT id, estado FROM widget_envios WHERE numero_seguimiento = $1`,
+      [req.params.numero.toUpperCase()]
+    );
+    if (!envio) return res.status(404).json({ error: 'Envío no encontrado' });
+
+    // Solo actualizar si está pendiente
+    if (envio.estado === 'pendiente_pago') {
+      await db.query(
+        `UPDATE widget_envios SET estado = 'confirmado' WHERE id = $1`,
+        [envio.id]
+      );
+      // Insertar evento de tracking si no existe
+      const { rows: eventos } = await db.query(
+        `SELECT id FROM tracking_widget WHERE envio_id = $1 LIMIT 1`,
+        [envio.id]
+      );
+      if (!eventos.length) {
+        await db.query(
+          `INSERT INTO tracking_widget (envio_id, estado, descripcion)
+           VALUES ($1, 'confirmado', 'Pago aprobado. Envío confirmado y en preparación.')`,
+          [envio.id]
+        );
+      }
+    }
+    res.json({ ok: true, estado: 'confirmado' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+
 // POST /api/pagos/:slug/crear
 // Crea una preferencia de pago en MP y devuelve el link
 router.post('/:slug/crear', async (req, res) => {

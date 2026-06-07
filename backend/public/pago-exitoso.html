@@ -16,6 +16,7 @@ p{font-size:14px;color:#6b7280;line-height:1.6;margin-bottom:20px}
 .btn-copy{background:none;border:1.5px solid #16a34a;color:#16a34a;padding:6px 16px;border-radius:6px;font-size:13px;cursor:pointer;margin-top:10px;font-family:inherit;font-weight:600}
 .btn{display:block;background:#E8500A;color:#fff;border:none;padding:13px;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;text-decoration:none;font-family:inherit;width:100%;margin-top:8px}
 .info{background:#f9fafb;border-radius:8px;padding:14px;font-size:13px;color:#374151;text-align:left;margin-bottom:16px;line-height:1.7}
+.info strong{color:#111}
 </style>
 </head>
 <body>
@@ -36,19 +37,23 @@ p{font-size:14px;color:#6b7280;line-height:1.6;margin-bottom:20px}
 </div>
 
 <script>
-  var params = new URLSearchParams(window.location.search);
-  var numero = params.get('numero');
+  var params  = new URLSearchParams(window.location.search);
+  var numero  = params.get('numero');
   var envioId = params.get('envio');
 
-  if (numero) {
-    document.getElementById('codigo').textContent = numero;
-  }
+  if (numero) document.getElementById('codigo').textContent = numero;
 
-  // Cargar datos del envío
-  if (envioId) {
-    fetch('/api/pagos/detalle/' + envioId)
-      .then(r => r.json())
-      .then(d => {
+  // Confirmar pago y cargar datos
+  async function init() {
+    if (numero) {
+      // Confirmar el pago en el backend
+      await fetch('/api/pagos/confirmar/' + numero).catch(() => {});
+    }
+
+    if (envioId) {
+      try {
+        var r = await fetch('/api/pagos/detalle/' + envioId);
+        var d = await r.json();
         if (d.origen) {
           document.getElementById('info-envio').innerHTML =
             '<strong>Origen:</strong> ' + d.origen + '<br>' +
@@ -56,10 +61,13 @@ p{font-size:14px;color:#6b7280;line-height:1.6;margin-bottom:20px}
             '<strong>Servicio:</strong> ' + (d.tipo_servicio || '—') + '<br>' +
             '<strong>Estado:</strong> Confirmado ✓';
         }
-      }).catch(() => {
+      } catch(e) {
         document.getElementById('info-envio').textContent = 'Envío confirmado y en proceso.';
-      });
+      }
+    }
   }
+
+  init();
 
   function copiar() {
     navigator.clipboard && navigator.clipboard.writeText(numero)
@@ -67,7 +75,9 @@ p{font-size:14px;color:#6b7280;line-height:1.6;margin-bottom:20px}
   }
 
   function rastrear() {
-    window.location = '/demo.html#tracking?numero=' + numero;
+    // Guardar número para el tracking
+    sessionStorage.setItem('tracking_numero', numero);
+    window.location = '/demo.html';
   }
 </script>
 </body>

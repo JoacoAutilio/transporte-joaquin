@@ -616,6 +616,19 @@
     document.getElementById("cw-track-input").addEventListener("keydown", function(e) {
       if (e.key === "Enter") cwRastrear();
     });
+
+    // Si viene de pago exitoso, precargar el número
+    var trackNum = sessionStorage.getItem('tracking_numero');
+    if (trackNum) {
+      sessionStorage.removeItem('tracking_numero');
+      document.getElementById('cw-track-input').value = trackNum;
+      // Cambiar a pestaña de tracking
+      document.querySelectorAll(".cw-panel").forEach(function(p) { p.classList.remove("on"); });
+      document.querySelectorAll(".cw-tab").forEach(function(b) { b.classList.remove("on"); });
+      document.getElementById("cw-panel-tracking").classList.add("on");
+      document.querySelectorAll(".cw-tab")[1].classList.add("on");
+      cwRastrear();
+    }
   }
 
   fetch(API_BASE + "/api/widget/" + empresa + "/config")
