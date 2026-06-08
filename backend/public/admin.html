@@ -454,14 +454,13 @@ if (TOKEN && EMPRESA) showPanel();
 
 // ── NAV ───────────────────────────────────────────────────────
 const pgConfig = {
-  stats:    { title:'Estadísticas',    sub:'Resumen de envíos y actividad',      btn:'↻ Actualizar' },
-  tarifas:  { title:'Tarifas',         sub:'Rutas y precios de tu empresa',       btn:'+ Nueva tarifa' },
-  choferes: { title:'Choferes',        sub:'Gestión del personal de conducción',  btn:'+ Nuevo chofer' },
-  vehiculos:{ title:'Vehículos',       sub:'Flota de camiones y utilitarias',     btn:'+ Nuevo vehículo' },
-  vehiculos:     { title:'Vehículos',       sub:'Flota de camiones y utilitarias',     btn:'+ Nuevo vehículo' },
-  envios:        { title:'Envíos',           sub:'Gestión y seguimiento de envíos',       btn:'↻ Actualizar' },
-  configuracion: { title:'Configuración',   sub:'Datos y preferencias de tu empresa',  btn:'Guardar' },
-let currentPg = 'stats';
+  stats:         { title:"Estadísticas",    sub:"Resumen de envíos y actividad",      btn:"↻ Actualizar" },
+  tarifas:       { title:"Tarifas",         sub:"Rutas y precios de tu empresa",       btn:"+ Nueva tarifa" },
+  choferes:      { title:"Choferes",        sub:"Gestión del personal de conducción",  btn:"+ Nuevo chofer" },
+  vehiculos:     { title:"Vehículos",       sub:"Flota de camiones y utilitarias",     btn:"+ Nuevo vehículo" },
+  envios:        { title:"Envíos",          sub:"Gestión y seguimiento de envíos",     btn:"↻ Actualizar" },
+  configuracion: { title:"Configuración",  sub:"Datos y preferencias de tu empresa",  btn:"Guardar" },
+};
 
 function nav(pg, el) {
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
@@ -478,7 +477,6 @@ function nav(pg, el) {
   if(pg==='choferes') loadChoferes();
   if(pg==='vehiculos') loadVehiculos();
   if(pg==='envios') loadEnvios();
-  if(pg==='configuracion') loadConfig();
   if(pg==='configuracion') loadConfig();
 }
 
