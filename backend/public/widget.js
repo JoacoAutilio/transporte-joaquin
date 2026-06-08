@@ -312,8 +312,20 @@
             '</div>',
             '<div class="cw-seguimiento">',
               '<p>Para confirmar tu envío y obtener el código de seguimiento</p>',
-              '<button class="cw-copy" style="background:' + c1 + ';border:none;color:#fff;padding:11px 24px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;margin-top:6px;width:100%" id="cw-btn-pagar" onclick="cwPagar()">💳 Pagar y confirmar envío</button>',
-              '<div id="cw-pago-loading" style="font-size:12px;color:rgba(255,255,255,.6);margin-top:8px;display:none">Redirigiendo a Mercado Pago...</div>',
+              '<div style="margin-top:12px">',
+                '<p style="font-size:12px;color:rgba(255,255,255,.6);margin-bottom:10px">Elegí cómo pagar:</p>',
+                '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">',
+                  '<button style="background:' + c1 + ';border:none;color:#fff;padding:11px 8px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit" id="cw-btn-pagar" onclick="cwPagar()">💳 Pagar online</button>',
+                  '<button style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;padding:11px 8px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit" id="cw-btn-qr" onclick="cwPagarQR()">📱 Pagar con QR</button>',
+                '</div>',
+                '<div id="cw-pago-loading" style="font-size:12px;color:rgba(255,255,255,.6);margin-top:8px;display:none;text-align:center">Generando...</div>',
+                '<div id="cw-qr-box" style="display:none;text-align:center;margin-top:14px;background:rgba(255,255,255,.1);border-radius:10px;padding:16px">',
+                  '<p style="font-size:12px;color:rgba(255,255,255,.7);margin-bottom:10px">Escaneá con cualquier app de pago</p>',
+                  '<img id="cw-qr-img" src="" alt="QR de pago" style="width:180px;height:180px;border-radius:8px;background:#fff;padding:8px">',
+                  '<p style="font-size:11px;color:rgba(255,255,255,.5);margin-top:8px">Mercado Pago · MODO · Transferencia</p>',
+                  '<button onclick="cwPagar()" style="margin-top:10px;background:none;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.7);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-family:inherit">O pagá online →</button>',
+                '</div>',
+              '</div>',
             '</div>',
             emp.telefono ? '<div style="margin-top:14px;font-size:13px;color:rgba(255,255,255,.55)">¿Consultas? <strong style="color:#fff">' + emp.telefono + '</strong></div>' : '',
           '</div>',
@@ -550,12 +562,13 @@
       }
     });
 
-    // ── Pagar ─────────────────────────────────────────────────
+    // ── Pagar online ──────────────────────────────────────────
     window.cwPagar = async function() {
       if (!window._cwCotizacion) return;
       var btn  = document.getElementById("cw-btn-pagar");
       var load = document.getElementById("cw-pago-loading");
       btn.disabled = true;
+      load.textContent = "Redirigiendo a Mercado Pago...";
       load.style.display = "block";
       try {
         var r = await fetch(API_BASE + "/api/pagos/" + empresa + "/crear", {
@@ -565,12 +578,51 @@
         });
         var d = await r.json();
         if (!r.ok) throw new Error(d.error || "Error al crear el pago");
-        // Redirigir a Mercado Pago
         window.location.href = d.init_point;
       } catch(e) {
         alert("Error: " + e.message);
         btn.disabled = false;
         load.style.display = "none";
+      }
+    };
+
+    // ── Pagar con QR ──────────────────────────────────────────
+    window.cwPagarQR = async function() {
+      if (!window._cwCotizacion) return;
+      var btnQR = document.getElementById("cw-btn-qr");
+      var load  = document.getElementById("cw-pago-loading");
+      var qrBox = document.getElementById("cw-qr-box");
+      var qrImg = document.getElementById("cw-qr-img");
+
+      btnQR.disabled = true;
+      load.textContent = "Generando QR...";
+      load.style.display = "block";
+      qrBox.style.display = "none";
+
+      try {
+        var r = await fetch(API_BASE + "/api/pagos/" + empresa + "/crear", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(window._cwCotizacion)
+        });
+        var d = await r.json();
+        if (!r.ok) throw new Error(d.error || "Error al generar QR");
+
+        // Generar QR con la URL de pago usando API gratuita
+        var qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=" + encodeURIComponent(d.init_point);
+        qrImg.src = qrUrl;
+        qrImg.onload = function() {
+          load.style.display = "none";
+          qrBox.style.display = "block";
+        };
+
+        // Guardar numero para cuando vuelva
+        window._cwPagoNumero = d.numero_seguimiento;
+      } catch(e) {
+        alert("Error: " + e.message);
+        load.style.display = "none";
+      } finally {
+        btnQR.disabled = false;
       }
     };
 
