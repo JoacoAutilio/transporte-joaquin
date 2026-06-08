@@ -139,6 +139,50 @@ router.get('/stats', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── ENVÍOS ─────────────────────────────────────────────────────
+
+// GET /api/admin/envios
+router.get('/envios', async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT id, numero_seguimiento, origen, destino, tipo_servicio,
+         estado, precio_total, created_at
+       FROM widget_envios WHERE empresa_id = $1
+       ORDER BY created_at DESC LIMIT 100`,
+      [req.empresa.id]
+    );
+    res.json(rows);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// PATCH /api/admin/envios/:id/estado
+router.patch('/envios/:id/estado', async (req, res) => {
+  const { estado, descripcion, ubicacion } = req.body;
+  const estadosValidos = ['confirmado','en_transito','en_centro','en_camino','entregado','cancelado'];
+  if (!estadosValidos.includes(estado)) {
+    return res.status(400).json({ error: 'Estado inválido' });
+  }
+  try {
+    // Verificar que el envío pertenece a esta empresa
+    const { rows: [envio] } = await db.query(
+      'SELECT id FROM widget_envios WHERE id=$1 AND empresa_id=$2',
+      [req.params.id, req.empresa.id]
+    );
+    if (!envio) return res.status(404).json({ error: 'Envío no encontrado' });
+
+    await db.query(
+      'UPDATE widget_envios SET estado=$1 WHERE id=$2',
+      [estado, req.params.id]
+    );
+    await db.query(
+      `INSERT INTO tracking_widget (envio_id, estado, descripcion, ubicacion)
+       VALUES ($1,$2,$3,$4)`,
+      [req.params.id, estado, descripcion || null, ubicacion || null]
+    );
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── CONFIGURACIÓN ─────────────────────────────────────────────
 
 router.put('/configuracion', async (req, res) => {

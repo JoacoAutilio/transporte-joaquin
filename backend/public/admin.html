@@ -143,6 +143,7 @@ tr:last-child td{border-bottom:none}
     <div class="nav-i" onclick="nav('tarifas',this)">💲 Tarifas</div>
     <div class="nav-i" onclick="nav('choferes',this)">👤 Choferes</div>
     <div class="nav-i" onclick="nav('vehiculos',this)">🚛 Vehículos</div>
+    <div class="nav-i" onclick="nav('envios',this)">📦 Envíos</div>
     <div class="nav-i" onclick="nav('configuracion',this)">⚙️ Configuración</div>
     <div class="sb-bottom">
       <button class="btn-logout" onclick="doLogout()">Cerrar sesión</button>
@@ -203,6 +204,20 @@ tr:last-child td{border-bottom:none}
           <table>
             <thead><tr><th>Patente</th><th>Marca / Modelo</th><th>Tipo</th><th>Año</th><th>Chofer asignado</th><th></th></tr></thead>
             <tbody id="vehiculos-tb"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ENVÍOS -->
+      <div class="pg" id="pg-envios">
+        <div class="card">
+          <div class="card-hdr">
+            <h2>📦 Envíos recientes</h2>
+            <input id="envios-search" placeholder="Buscar por número..." style="padding:7px 12px;border:1px solid var(--bd);border-radius:7px;font-size:13px;outline:none;width:200px" oninput="filtrarEnvios()">
+          </div>
+          <table>
+            <thead><tr><th>Número</th><th>Origen → Destino</th><th>Servicio</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
+            <tbody id="envios-tb"></tbody>
           </table>
         </div>
       </div>
@@ -443,7 +458,9 @@ const pgConfig = {
   tarifas:  { title:'Tarifas',         sub:'Rutas y precios de tu empresa',       btn:'+ Nueva tarifa' },
   choferes: { title:'Choferes',        sub:'Gestión del personal de conducción',  btn:'+ Nuevo chofer' },
   vehiculos:{ title:'Vehículos',       sub:'Flota de camiones y utilitarias',     btn:'+ Nuevo vehículo' },
-};
+  vehiculos:     { title:'Vehículos',       sub:'Flota de camiones y utilitarias',     btn:'+ Nuevo vehículo' },
+  envios:        { title:'Envíos',           sub:'Gestión y seguimiento de envíos',       btn:'↻ Actualizar' },
+  configuracion: { title:'Configuración',   sub:'Datos y preferencias de tu empresa',  btn:'Guardar' },
 let currentPg = 'stats';
 
 function nav(pg, el) {
@@ -460,6 +477,8 @@ function nav(pg, el) {
   if(pg==='tarifas') loadTarifas();
   if(pg==='choferes') loadChoferes();
   if(pg==='vehiculos') loadVehiculos();
+  if(pg==='envios') loadEnvios();
+  if(pg==='configuracion') loadConfig();
   if(pg==='configuracion') loadConfig();
 }
 
@@ -741,7 +760,104 @@ document.querySelectorAll('.mo').forEach(m =>
   m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); })
 );
 
-// ── CONFIGURACIÓN ─────────────────────────────────────────────
+// ── ENVÍOS ────────────────────────────────────────────────────
+var todosEnvios = [];
+
+const ESTADO_LABELS = {
+  pendiente_pago: '⏳ Pendiente de pago',
+  confirmado:     '✅ Confirmado',
+  en_transito:    '🚛 En tránsito',
+  en_centro:      '🏭 En centro de dist.',
+  en_camino:      '📍 En camino',
+  entregado:      '📦 Entregado',
+  cancelado:      '❌ Cancelado',
+};
+
+const ESTADO_COLORS = {
+  pendiente_pago: '#f59e0b',
+  confirmado:     '#3b82f6',
+  en_transito:    '#8b5cf6',
+  en_centro:      '#06b6d4',
+  en_camino:      '#f97316',
+  entregado:      '#16a34a',
+  cancelado:      '#dc2626',
+};
+
+async function loadEnvios() {
+  const tbody = document.getElementById('envios-tb');
+  tbody.innerHTML = '<tr><td colspan="6" class="empty">Cargando...</td></tr>';
+  try {
+    const r = await api('/api/admin/envios');
+    if (!r) return;
+    todosEnvios = await r.json();
+    renderEnvios(todosEnvios);
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="6" class="empty">Error: ${e.message}</td></tr>`;
+  }
+}
+
+function renderEnvios(envios) {
+  const tbody = document.getElementById('envios-tb');
+  if (!envios.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty">No hay envíos todavía</td></tr>';
+    return;
+  }
+  tbody.innerHTML = envios.map(e => {
+    const col   = ESTADO_COLORS[e.estado] || '#6b7280';
+    const label = ESTADO_LABELS[e.estado] || e.estado;
+    const fecha = new Date(e.created_at).toLocaleDateString('es-AR');
+    return `<tr>
+      <td><strong>${e.numero_seguimiento}</strong></td>
+      <td style="font-size:12px">${e.origen}<br><span style="color:var(--mt)">→ ${e.destino}</span></td>
+      <td>${e.tipo_servicio}</td>
+      <td><span style="background:${col}22;color:${col};padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">${label}</span></td>
+      <td style="font-size:12px">${fecha}</td>
+      <td>
+        <button class="btn btn-sm btn-or" onclick="abrirEstado(${e.id},'${e.numero_seguimiento}','${e.origen}','${e.destino}','${e.estado}')">
+          Actualizar
+        </button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function filtrarEnvios() {
+  const q = document.getElementById('envios-search').value.toLowerCase();
+  renderEnvios(todosEnvios.filter(e =>
+    e.numero_seguimiento.toLowerCase().includes(q) ||
+    e.origen.toLowerCase().includes(q) ||
+    e.destino.toLowerCase().includes(q)
+  ));
+}
+
+function abrirEstado(id, numero, origen, destino, estadoActual) {
+  document.getElementById('estado-envio-id').value = id;
+  document.getElementById('estado-envio-num').textContent = numero;
+  document.getElementById('estado-envio-ruta').textContent = origen + ' → ' + destino;
+  document.getElementById('estado-nuevo').value = estadoActual;
+  document.getElementById('estado-desc').value = '';
+  document.getElementById('estado-ubic').value = '';
+  openMo('mo-estado');
+}
+
+async function guardarEstado() {
+  const id    = document.getElementById('estado-envio-id').value;
+  const estado= document.getElementById('estado-nuevo').value;
+  const desc  = document.getElementById('estado-desc').value.trim();
+  const ubic  = document.getElementById('estado-ubic').value.trim();
+
+  const r = await api('/api/admin/envios/' + id + '/estado', 'PATCH', {
+    estado, descripcion: desc || null, ubicacion: ubic || null
+  });
+  if (!r) return;
+  const d = await r.json();
+  if (!r.ok) { toast(d.error, false); return; }
+  closeMo('mo-estado');
+  loadEnvios();
+  toast('Estado actualizado');
+}
+
+
 async function loadConfig() {
   const r = await api('/api/auth/me');
   if (!r) return;
@@ -824,5 +940,45 @@ window.nav = function(pg, el) {
   if (sb && sb.classList.contains('open')) toggleSidebar();
 };
 </script>
+<!-- MODAL ESTADO ENVÍO -->
+<div class="mo" id="mo-estado">
+  <div class="mo-box">
+    <div class="mo-hdr">
+      <h3>Actualizar estado del envío</h3>
+      <button class="mo-close" onclick="closeMo('mo-estado')">✕</button>
+    </div>
+    <div class="mo-body">
+      <input type="hidden" id="estado-envio-id">
+      <div style="background:#f9fafb;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:13px">
+        <strong id="estado-envio-num"></strong><br>
+        <span style="color:var(--mt)" id="estado-envio-ruta"></span>
+      </div>
+      <div class="form-row">
+        <label>Nuevo estado *</label>
+        <select id="estado-nuevo">
+          <option value="confirmado">✅ Confirmado</option>
+          <option value="en_transito">🚛 En tránsito</option>
+          <option value="en_centro">🏭 En centro de distribución</option>
+          <option value="en_camino">📍 En camino al destino</option>
+          <option value="entregado">📦 Entregado</option>
+          <option value="cancelado">❌ Cancelado</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Descripción (opcional)</label>
+        <input id="estado-desc" placeholder="Ej: El paquete salió de Córdoba a las 8am">
+      </div>
+      <div class="form-row">
+        <label>Ubicación actual (opcional)</label>
+        <input id="estado-ubic" placeholder="Ej: Terminal Córdoba">
+      </div>
+    </div>
+    <div class="mo-foot">
+      <button class="btn btn-outline" onclick="closeMo('mo-estado')">Cancelar</button>
+      <button class="btn btn-or" onclick="guardarEstado()">Actualizar estado</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
