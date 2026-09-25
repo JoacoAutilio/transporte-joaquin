@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pago fallido</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#fef2f2;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:#fff;border-radius:14px;padding:40px 32px;max-width:400px;width:100%;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.08)}
+.icon{font-size:56px;margin-bottom:16px}
+h1{font-size:22px;font-weight:800;color:#dc2626;margin-bottom:8px}
+p{font-size:14px;color:#6b7280;line-height:1.6;margin-bottom:24px}
+.btn{display:block;background:#E8500A;color:#fff;border:none;padding:13px;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;text-decoration:none;font-family:inherit;width:100%;margin-bottom:10px}
+.btn-sec{display:block;background:#f3f4f6;color:#374151;border:none;padding:13px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;width:100%}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="icon">❌</div>
+  <h1>El pago no se procesó</h1>
+  <p>Hubo un problema con tu pago. Podés intentarlo de nuevo o contactar a la empresa.</p>
+  <button class="btn" onclick="history.back()">Intentar de nuevo</button>
+  <button class="btn-sec" onclick="window.location='/'">Volver al inicio</button>
+</div>
+</body>
+</html>
