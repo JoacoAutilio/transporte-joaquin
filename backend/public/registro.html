@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Registrar empresa — Cotizador Web</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--navy:#0B1E3D;--or:#E8500A;--bd:#e5e7eb;--mt:#6b7280}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--navy);min-height:100vh;display:flex;flex-direction:column}
+.topbar{padding:18px 28px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-size:18px;font-weight:800;color:#fff}
+.logo em{color:var(--or);font-style:normal}
+.topbar a{color:rgba(255,255,255,.6);font-size:13px;text-decoration:none}
+.topbar a:hover{color:#fff}
+.wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:24px}
+.card{background:#fff;border-radius:14px;padding:36px 32px;width:100%;max-width:480px}
+.card-title{font-size:22px;font-weight:800;color:var(--navy);margin-bottom:4px}
+.card-sub{font-size:14px;color:var(--mt);margin-bottom:28px;line-height:1.5}
+.form-row{margin-bottom:16px}
+.form-row label{display:block;font-size:12px;font-weight:600;color:var(--mt);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+.form-row input{width:100%;padding:10px 14px;border:1.5px solid var(--bd);border-radius:8px;font-size:14px;font-family:inherit;outline:none;transition:border-color .15s}
+.form-row input:focus{border-color:var(--or)}
+.form-row .hint{font-size:11px;color:var(--mt);margin-top:4px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.slug-preview{font-size:12px;color:var(--or);margin-top:4px;font-weight:600;min-height:16px}
+.divider{border:none;border-top:1px solid var(--bd);margin:20px 0}
+.btn{width:100%;background:var(--or);color:#fff;border:none;padding:13px;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px;transition:opacity .2s}
+.btn:hover{opacity:.88}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.err{background:#fee2e2;color:#dc2626;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:16px;display:none}
+.login-link{text-align:center;margin-top:18px;font-size:13px;color:var(--mt)}
+.login-link a{color:var(--or);text-decoration:none;font-weight:600}
+
+/* ÉXITO */
+.success{display:none;text-align:center;padding:10px 0}
+.success .check{font-size:52px;margin-bottom:12px}
+.success h3{font-size:20px;font-weight:800;color:var(--navy);margin-bottom:8px}
+.success p{font-size:14px;color:var(--mt);line-height:1.6;margin-bottom:16px}
+.info-box{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px 16px;text-align:left;margin-bottom:12px}
+.info-box .info-title{font-size:11px;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+.info-box code{font-size:13px;font-weight:700;color:#166534;background:#dcfce7;padding:2px 6px;border-radius:4px;word-break:break-all}
+.copy-btn{background:none;border:1px solid #166534;color:#166534;padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;margin-top:6px;font-family:inherit}
+
+@media(max-width:480px){
+  .form-grid{grid-template-columns:1fr}
+  .card{padding:24px 18px}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">Cotizador <em>Web</em></div>
+  <a href="/admin.html">← Ya tengo cuenta</a>
+</div>
+
+<div class="wrap">
+  <div class="card">
+
+    <!-- FORMULARIO -->
+    <div id="form-section">
+      <div class="card-title">Registrá tu empresa</div>
+      <div class="card-sub">Creá tu cuenta gratuita y tené tu cotizador online en minutos.</div>
+
+      <div id="err-msg" class="err"></div>
+
+      <div class="form-row">
+        <label>Nombre de la empresa *</label>
+        <input id="f-nombre" placeholder="Ej: Transporte Juan" oninput="autoSlug()">
+      </div>
+
+      <div class="form-row">
+        <label>Teléfono de contacto</label>
+        <input id="f-tel" placeholder="0800-000-0000">
+      </div>
+
+      <hr class="divider">
+
+      <div class="form-row">
+        <label>Email del administrador *</label>
+        <input id="f-email" type="email" placeholder="admin@tuempresa.com">
+      </div>
+
+      <div class="form-grid">
+        <div class="form-row">
+          <label>Contraseña *</label>
+          <input id="f-pass" type="password" placeholder="Mín. 8 caracteres">
+        </div>
+        <div class="form-row">
+          <label>Repetir contraseña *</label>
+          <input id="f-pass2" type="password" placeholder="Igual que arriba">
+        </div>
+      </div>
+
+      <button class="btn" id="btn-reg" onclick="registrar()">Crear cuenta gratis →</button>
+
+      <div class="login-link">¿Ya tenés cuenta? <a href="/admin.html">Ingresá acá</a></div>
+    </div>
+
+    <!-- ÉXITO -->
+    <div class="success" id="success-section">
+      <div class="check">🎉</div>
+      <h3 id="s-nombre"></h3>
+      <p>Tu cuenta fue creada. Ingresá al panel, cargá tus tarifas y empezá a recibir cotizaciones.</p>
+
+      <div class="info-box">
+        <div class="info-title">Tu panel de administración</div>
+        <code id="s-panel"></code>
+      </div>
+
+      <div class="info-box">
+        <div class="info-title">Código para pegar en tu web</div>
+        <code id="s-widget" style="font-size:11px;display:block;line-height:1.6"></code>
+        <button class="copy-btn" onclick="copiarWidget()">Copiar código</button>
+      </div>
+
+      <button class="btn" onclick="window.location='/admin.html'">Ir al panel →</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  var API  = window.location.origin;
+  var slug = '';
+
+  function autoSlug() {
+    var nombre = document.getElementById('f-nombre').value;
+    slug = nombre.toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/\s+/g,'-')
+      .replace(/[^a-z0-9-]/g,'')
+      .replace(/-+/g,'-')
+      .replace(/^-|-$/g,'');
+  }
+
+  function showErr(msg) {
+    var el = document.getElementById('err-msg');
+    el.textContent = msg;
+    el.style.display = 'block';
+    el.scrollIntoView({ behavior:'smooth', block:'center' });
+  }
+
+  async function registrar() {
+    document.getElementById('err-msg').style.display = 'none';
+    var nombre = document.getElementById('f-nombre').value.trim();
+    var email  = document.getElementById('f-email').value.trim();
+    var pass   = document.getElementById('f-pass').value;
+    var pass2  = document.getElementById('f-pass2').value;
+    var tel    = document.getElementById('f-tel').value.trim();
+
+    if (!nombre)         { showErr('Ingresá el nombre de la empresa.'); return; }
+    if (!email)          { showErr('Ingresá el email del administrador.'); return; }
+    if (pass.length < 8) { showErr('La contraseña debe tener al menos 8 caracteres.'); return; }
+    if (pass !== pass2)  { showErr('Las contraseñas no coinciden.'); return; }
+    if (!slug)           { autoSlug(); }
+    if (!slug || slug.length < 2) { showErr('El nombre de empresa es demasiado corto.'); return; }
+
+    var btn = document.getElementById('btn-reg');
+    btn.disabled = true;
+    btn.textContent = 'Creando cuenta...';
+
+    try {
+      var r = await fetch(API + '/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: nombre,
+          slug: slug,
+          email_admin: email,
+          password: pass,
+          telefono: tel || null
+        })
+      });
+      var d = await r.json();
+      if (!r.ok) {
+        if (d.error && d.error.includes('ya registrado')) {
+          showErr('Ese email o nombre ya está registrado. Probá con otro.');
+        } else {
+          showErr(d.error || 'Error al registrar. Intentá de nuevo.');
+        }
+        return;
+      }
+
+      // Mostrar éxito
+      document.getElementById('form-section').style.display = 'none';
+      document.getElementById('success-section').style.display = 'block';
+      document.getElementById('s-nombre').textContent = '¡Bienvenido, ' + nombre + '!';
+      document.getElementById('s-panel').textContent = API + '/admin.html';
+      document.getElementById('s-widget').textContent =
+        '<div id="cotizador-widget"></div>\n' +
+        '<script src="' + API + '/widget.js"\n' +
+        '  data-empresa="' + slug + '">\n' +
+        '<\/script>';
+    } catch(e) {
+      showErr('Error de conexión. Verificá tu internet e intentá de nuevo.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Crear cuenta gratis →';
+    }
+  }
+
+  function copiarWidget() {
+    var txt = document.getElementById('s-widget').textContent;
+    navigator.clipboard && navigator.clipboard.writeText(txt)
+      .then(function(){ alert('Código copiado'); });
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && document.activeElement.tagName === 'INPUT') registrar();
+  });
+</script>
+</body>
+</html>
