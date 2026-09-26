@@ -1,6 +1,6 @@
 (function () {
   var scriptTag   = document.currentScript;
-  var empresa     = scriptTag.getAttribute('data-empresa') || 'demo';
+  var empresa     = scriptTag.getAttribute('data-empresa') || 'transporte-joaquin';
   var API_BASE    = scriptTag.getAttribute('data-api') || window.location.origin;
   var containerId = scriptTag.getAttribute('data-container') || 'cotizador-widget';
 
