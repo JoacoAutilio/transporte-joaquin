@@ -37,8 +37,7 @@ export default function Home() {
 
           <button
             onClick={calcularPrecio}
-            className="w-full mt-8 bg-orange-500 text-white p-5 rounded-2xl text-xl font-bold"
-          >
+            className="w-full mt-8 bg-orange-500 text-white p-5 rounded-2xl text-xl font-bold">
             Calcular
           </button>
 
