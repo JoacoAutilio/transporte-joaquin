@@ -315,10 +315,12 @@
       '</div>'
     ].join('');
 
+    // Restaurar estado guardado si volvió atrás
+    var _saved = JSON.parse(sessionStorage.getItem('cw_estado') || '{}');
     var currentPaso = 1;
-    var modalidad   = 'deposito_sucursal';
-    var tipoRem     = 'particular';
-    var tipoDest    = 'particular';
+    var modalidad   = _saved.modalidad || 'deposito_sucursal';
+    var tipoRem     = _saved.tipoRem   || 'particular';
+    var tipoDest    = _saved.tipoDest  || 'particular';
 
     // ── Tabs
     window.cwTab = function(panel, btn) {
@@ -330,6 +332,42 @@
 
     // ── Wizard navigation
     window.cwGoTo = function(n) {
+      // Guardar estado antes de avanzar
+      sessionStorage.setItem('cw_estado', JSON.stringify({
+        modalidad: modalidad,
+        tipoRem: tipoRem,
+        tipoDest: tipoDest,
+        paso: n,
+        campos: {
+          provOrigen: document.getElementById('cw-prov-origen')?.value,
+          ciudOrigen: document.getElementById('cw-ciudad-origen')?.value,
+          provDestino: document.getElementById('cw-prov-destino')?.value,
+          ciudDestino: document.getElementById('cw-ciudad-destino')?.value,
+          peso: document.getElementById('cw-peso')?.value,
+          bultos: document.getElementById('cw-bultos')?.value,
+          largo: document.getElementById('cw-largo')?.value,
+          ancho: document.getElementById('cw-ancho')?.value,
+          alto: document.getElementById('cw-alto')?.value,
+          servicio: document.getElementById('cw-servicio')?.value,
+          pago: document.getElementById('cw-pago')?.value,
+          remNom: document.getElementById('cw-rem-nom')?.value,
+          remAp: document.getElementById('cw-rem-ap')?.value,
+          remDoc: document.getElementById('cw-rem-doc')?.value,
+          remCel: document.getElementById('cw-rem-cel')?.value,
+          remEmail: document.getElementById('cw-rem-email')?.value,
+          remCalle: document.getElementById('cw-rem-calle')?.value,
+          remNum: document.getElementById('cw-rem-num')?.value,
+          remCP: document.getElementById('cw-rem-cp')?.value,
+          destNom: document.getElementById('cw-dest-nom')?.value,
+          destAp: document.getElementById('cw-dest-ap')?.value,
+          destDoc: document.getElementById('cw-dest-doc')?.value,
+          destCel: document.getElementById('cw-dest-cel')?.value,
+          destEmail: document.getElementById('cw-dest-email')?.value,
+          destCalle: document.getElementById('cw-dest-calle')?.value,
+          destNum: document.getElementById('cw-dest-num')?.value,
+          destCP: document.getElementById('cw-dest-cp')?.value,
+        }
+      }));
       document.getElementById('cw-paso'+currentPaso).style.display = 'none';
       document.getElementById('cw-err').style.display = 'none';
       currentPaso = n;
@@ -600,7 +638,37 @@
       cwRastrear();
     }
   }
-
+  // Restaurar campos si hay estado guardado
+  function restoreEstado(savedState) {
+    var c = savedState.campos;
+    if (!c) return;
+    if (c.provOrigen) { document.getElementById('cw-prov-origen').value = c.provOrigen; cwCiudades('origen'); setTimeout(function(){ if(c.ciudOrigen) document.getElementById('cw-ciudad-origen').value = c.ciudOrigen; }, 100); }
+    if (c.provDestino) { document.getElementById('cw-prov-destino').value = c.provDestino; cwCiudades('destino'); setTimeout(function(){ if(c.ciudDestino) document.getElementById('cw-ciudad-destino').value = c.ciudDestino; }, 100); }
+    if (c.peso) document.getElementById('cw-peso').value = c.peso;
+    if (c.bultos) document.getElementById('cw-bultos').value = c.bultos;
+    if (c.largo) document.getElementById('cw-largo').value = c.largo;
+    if (c.ancho) document.getElementById('cw-ancho').value = c.ancho;
+    if (c.alto) document.getElementById('cw-alto').value = c.alto;
+    if (c.servicio) document.getElementById('cw-servicio').value = c.servicio;
+    if (c.pago) document.getElementById('cw-pago').value = c.pago;
+    if (c.remNom) document.getElementById('cw-rem-nom').value = c.remNom;
+    if (c.remAp) document.getElementById('cw-rem-ap').value = c.remAp;
+    if (c.remDoc) document.getElementById('cw-rem-doc').value = c.remDoc;
+    if (c.remCel) document.getElementById('cw-rem-cel').value = c.remCel;
+    if (c.remEmail) document.getElementById('cw-rem-email').value = c.remEmail;
+    if (c.remCalle) document.getElementById('cw-rem-calle').value = c.remCalle;
+    if (c.remNum) document.getElementById('cw-rem-num').value = c.remNum;
+    if (c.remCP) document.getElementById('cw-rem-cp').value = c.remCP;
+    if (c.destNom) document.getElementById('cw-dest-nom').value = c.destNom;
+    if (c.destAp) document.getElementById('cw-dest-ap').value = c.destAp;
+    if (c.destDoc) document.getElementById('cw-dest-doc').value = c.destDoc;
+    if (c.destCel) document.getElementById('cw-dest-cel').value = c.destCel;
+    if (c.destEmail) document.getElementById('cw-dest-email').value = c.destEmail;
+    if (c.destCalle) document.getElementById('cw-dest-calle').value = c.destCalle;
+    if (c.destNum) document.getElementById('cw-dest-num').value = c.destNum;
+    if (c.destCP) document.getElementById('cw-dest-cp').value = c.destCP;
+    if (savedState.paso && savedState.paso > 1) setTimeout(function(){ cwGoTo(savedState.paso); }, 300);
+  }
   fetch(API_BASE+'/api/widget/'+empresa+'/config')
     .then(function(r){return r.json();})
     .then(buildHTML)
