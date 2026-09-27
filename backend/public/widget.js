@@ -577,6 +577,43 @@
         var r=await fetch(API_BASE+'/api/pagos/'+empresa+'/crear',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(window._cwCotizacion)});
         var d=await r.json();
         if(!r.ok) throw new Error(d.error||'Error al crear el pago');
+        // Guardar cotización y estado antes de redirigir
+        sessionStorage.setItem('cw_cotizacion', JSON.stringify(window._cwCotizacion));
+        sessionStorage.setItem('cw_estado', JSON.stringify({
+          modalidad: modalidad,
+          tipoRem: tipoRem,
+          tipoDest: tipoDest,
+          paso: 5,
+          campos: {
+            provOrigen: document.getElementById('cw-prov-origen')?.value,
+            ciudOrigen: document.getElementById('cw-ciudad-origen')?.value,
+            provDestino: document.getElementById('cw-prov-destino')?.value,
+            ciudDestino: document.getElementById('cw-ciudad-destino')?.value,
+            peso: document.getElementById('cw-peso')?.value,
+            bultos: document.getElementById('cw-bultos')?.value,
+            largo: document.getElementById('cw-largo')?.value,
+            ancho: document.getElementById('cw-ancho')?.value,
+            alto: document.getElementById('cw-alto')?.value,
+            servicio: document.getElementById('cw-servicio')?.value,
+            pago: document.getElementById('cw-pago')?.value,
+            remNom: document.getElementById('cw-rem-nom')?.value,
+            remAp: document.getElementById('cw-rem-ap')?.value,
+            remDoc: document.getElementById('cw-rem-doc')?.value,
+            remCel: document.getElementById('cw-rem-cel')?.value,
+            remEmail: document.getElementById('cw-rem-email')?.value,
+            remCalle: document.getElementById('cw-rem-calle')?.value,
+            remNum: document.getElementById('cw-rem-num')?.value,
+            remCP: document.getElementById('cw-rem-cp')?.value,
+            destNom: document.getElementById('cw-dest-nom')?.value,
+            destAp: document.getElementById('cw-dest-ap')?.value,
+            destDoc: document.getElementById('cw-dest-doc')?.value,
+            destCel: document.getElementById('cw-dest-cel')?.value,
+            destEmail: document.getElementById('cw-dest-email')?.value,
+            destCalle: document.getElementById('cw-dest-calle')?.value,
+            destNum: document.getElementById('cw-dest-num')?.value,
+            destCP: document.getElementById('cw-dest-cp')?.value,
+          }
+        }));
         window.location.href=d.init_point;
       } catch(e) { alert('Error: '+e.message); btn.disabled=false; load.style.display='none'; }
     };
@@ -639,7 +676,7 @@
     }
   }
   // Restaurar campos si hay estado guardado
-  function restoreEstado(savedState) {
+    function restoreEstado(savedState) {
     var c = savedState.campos;
     if (!c) return;
     if (c.provOrigen) { document.getElementById('cw-prov-origen').value = c.provOrigen; cwCiudades('origen'); setTimeout(function(){ if(c.ciudOrigen) document.getElementById('cw-ciudad-origen').value = c.ciudOrigen; }, 100); }
@@ -667,6 +704,9 @@
     if (c.destCalle) document.getElementById('cw-dest-calle').value = c.destCalle;
     if (c.destNum) document.getElementById('cw-dest-num').value = c.destNum;
     if (c.destCP) document.getElementById('cw-dest-cp').value = c.destCP;
+    // Restaurar cotización guardada
+    var savedCotizacion = sessionStorage.getItem('cw_cotizacion');
+    if (savedCotizacion) window._cwCotizacion = JSON.parse(savedCotizacion);
     if (savedState.paso && savedState.paso > 1) setTimeout(function(){ cwGoTo(savedState.paso); }, 300);
   }
   fetch(API_BASE+'/api/widget/'+empresa+'/config')
