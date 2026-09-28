@@ -558,7 +558,7 @@
             '</div>',
           '</div>'
         ].join('');
-
+      sessionStorage.removeItem('cw_estado');
         cwGoTo(5);
       } catch(e) {
         showErr(e.message);
