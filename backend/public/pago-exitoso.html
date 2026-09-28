@@ -76,9 +76,10 @@ p{font-size:14px;color:#6b7280;line-height:1.6;margin-bottom:20px}
 
 function rastrear() {
     sessionStorage.setItem('tracking_numero', numero);
-    // Volver a la página anterior donde está el widget
-    if (document.referrer && !document.referrer.includes('mercadopago')) {
-      window.location = document.referrer;
+    // Volver a la página anterior con el widget
+    var origen = sessionStorage.getItem('cw_origen_url');
+    if (origen) {
+      window.location = origen;
     } else {
       window.history.back();
     }

@@ -579,6 +579,7 @@
         if(!r.ok) throw new Error(d.error||'Error al crear el pago');
         // Guardar cotización y estado antes de redirigir
         sessionStorage.setItem('cw_cotizacion', JSON.stringify(window._cwCotizacion));
+        sessionStorage.setItem('cw_origen_url', window.location.href);
         sessionStorage.setItem('cw_estado', JSON.stringify({
           modalidad: modalidad,
           tipoRem: tipoRem,
