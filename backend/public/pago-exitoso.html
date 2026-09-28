@@ -24,46 +24,40 @@ p{font-size:14px;color:#6b7280;line-height:1.6;margin-bottom:20px}
   <div class="icon">✅</div>
   <h1>¡Pago aprobado!</h1>
   <p>Tu envío fue confirmado. Guardá el código de seguimiento para rastrear tu paquete.</p>
-
   <div class="codigo-box">
     <div class="codigo-label">Tu código de seguimiento</div>
     <div class="codigo" id="codigo">—</div>
     <button class="btn-copy" onclick="copiar()">Copiar código</button>
   </div>
-
   <div class="info" id="info-envio">Cargando datos del envío...</div>
-
   <button class="btn" onclick="rastrear()">Rastrear mi envío</button>
 </div>
-
 <script>
-  var params  = new URLSearchParams(window.location.search);
-  var numero  = params.get('numero');
-  var envioId = params.get('envio');
+  var params = new URLSearchParams(window.location.search);
+  var numero = params.get('numero');
 
   if (numero) document.getElementById('codigo').textContent = numero;
 
-  // Confirmar pago y cargar datos
   async function init() {
     if (numero) {
-      // Confirmar el pago en el backend
       await fetch('/api/pagos/confirmar/' + numero).catch(() => {});
     }
-
-    if (envioId) {
-      try {
-        var r = await fetch('/api/pagos/detalle/' + envioId);
-        var d = await r.json();
-        if (d.origen) {
-          document.getElementById('info-envio').innerHTML =
-            '<strong>Origen:</strong> ' + d.origen + '<br>' +
-            '<strong>Destino:</strong> ' + d.destino + '<br>' +
-            '<strong>Servicio:</strong> ' + (d.tipo_servicio || '—') + '<br>' +
-            '<strong>Estado:</strong> Confirmado ✓';
+    var origenUrl = sessionStorage.getItem('cw_origen_url');
+    var el = document.getElementById('info-envio');
+    if (origenUrl && numero) {
+      sessionStorage.setItem('tracking_numero', numero);
+      var countdown = 4;
+      el.innerHTML = 'Serás redirigido en <strong>' + countdown + '</strong> segundos...';
+      var interval = setInterval(function() {
+        countdown--;
+        el.innerHTML = 'Serás redirigido en <strong>' + countdown + '</strong> segundos...';
+        if (countdown <= 0) {
+          clearInterval(interval);
+          window.location = origenUrl;
         }
-      } catch(e) {
-        document.getElementById('info-envio').textContent = 'Envío confirmado y en proceso.';
-      }
+      }, 1000);
+    } else {
+      el.textContent = 'Envío confirmado y en proceso.';
     }
   }
 
@@ -71,12 +65,11 @@ p{font-size:14px;color:#6b7280;line-height:1.6;margin-bottom:20px}
 
   function copiar() {
     navigator.clipboard && navigator.clipboard.writeText(numero)
-      .then(() => alert('Código copiado: ' + numero));
+      .then(function() { alert('Código copiado: ' + numero); });
   }
 
-function rastrear() {
+  function rastrear() {
     sessionStorage.setItem('tracking_numero', numero);
-    // Volver a la página anterior con el widget
     var origen = sessionStorage.getItem('cw_origen_url');
     if (origen) {
       window.location = origen;
