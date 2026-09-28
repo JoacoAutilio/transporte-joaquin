@@ -74,10 +74,14 @@ p{font-size:14px;color:#6b7280;line-height:1.6;margin-bottom:20px}
       .then(() => alert('Código copiado: ' + numero));
   }
 
-  function rastrear() {
-    // Guardar número para el tracking
+function rastrear() {
     sessionStorage.setItem('tracking_numero', numero);
-    window.location = '/demo.html';
+    // Volver a la página anterior donde está el widget
+    if (document.referrer && !document.referrer.includes('mercadopago')) {
+      window.location = document.referrer;
+    } else {
+      window.history.back();
+    }
   }
 </script>
 </body>
