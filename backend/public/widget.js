@@ -527,7 +527,7 @@
         document.getElementById('cw-result-box').innerHTML = [
           '<div class="cw-result">',
             '<div class="cw-rprice">'+fmt(total)+'</div>',
-            '<div class="cw-runit">ARS · IVA incluido (21%) · Precio referencial</div>',
+            '<div class="cw-runit">ARS · IVA incluido (21%) · <span style="color:#f97316;font-weight:600">⚠️ Precio sujeto a modificación según pesaje real en sucursal</span></div>',
             '<div class="cw-rbadge">⏱ '+data.plazo+'</div>',
             '<div class="cw-rrows">',
               '<div class="cw-rrow"><span>Precio sin IVA</span><span>'+fmt(sinIVA)+'</span></div>',
