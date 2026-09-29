@@ -262,6 +262,7 @@
                 '<select id="cw-pago">',
                   '<option value="origen">Pago en origen (quien envía)</option>',
                   '<option value="destino">Pago en destino (quien recibe)</option>',
+                  '<option value="sucursal">Pagar en sucursal (efectivo o transferencia)</option>',
                 '</select>',
               '</div>',
             '</div>',
@@ -542,9 +543,13 @@
               '<div class="cw-rrow"><span>Dir. entrega</span><span>'+dirDest+'</span></div>',
               '<div class="cw-rrow total"><span>Total con IVA</span><span>'+fmt(total)+'</span></div>',
             '</div>',
-            '<div class="cw-pay-btns">',
+            '<div class="cw-pay-btns" id="cw-pay-btns">',
               '<button class="cw-pay-btn cw-pay-primary" id="cw-btn-pagar" onclick="cwPagar()">💳 Pagar online</button>',
               '<button class="cw-pay-btn cw-pay-secondary" id="cw-btn-qr" onclick="cwPagarQR()">📱 Pagar con QR</button>',
+            '</div>',
+            '<div id="cw-sucursal-box" style="display:none;margin-top:16px;background:rgba(255,255,255,.08);border-radius:10px;padding:16px;text-align:center">',
+              '<p style="font-size:13px;color:rgba(255,255,255,.8);margin-bottom:8px">📍 Presentate en nuestra sucursal con este resumen para abonar y dejar tu paquete.</p>',
+              '<p style="font-size:11px;color:rgba(255,255,255,.5)">⚠️ Precio sujeto a modificación según pesaje real en sucursal.</p>',
             '</div>',
             '<div class="cw-pago-loading" id="cw-pago-loading">Generando...</div>',
             '<div class="cw-qr-box" id="cw-qr-box">',
@@ -558,7 +563,17 @@
             '</div>',
           '</div>'
         ].join('');
-      sessionStorage.removeItem('cw_estado');
+            sessionStorage.removeItem('cw_estado');
+      // Mostrar u ocultar botones según forma de pago
+      var pagarBtns = document.getElementById('cw-pay-btns');
+      var sucursalBox = document.getElementById('cw-sucursal-box');
+      if (pago === 'sucursal') {
+        pagarBtns.style.display = 'none';
+        sucursalBox.style.display = 'block';
+      } else {
+        pagarBtns.style.display = 'grid';
+        sucursalBox.style.display = 'none';
+      }
         cwGoTo(5);
       } catch(e) {
         showErr(e.message);
