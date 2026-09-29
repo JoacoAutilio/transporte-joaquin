@@ -52,9 +52,6 @@ router.get('/confirmar/:numero', async (req, res) => {
 
 
 // POST /api/pagos/:slug/crear
-// Crea una preferencia de pago en MP y devuelve el link
-// POST /api/pagos/:slug/crear
-// Crea una preferencia de pago en MP — NO guarda en DB hasta que se confirme el pago
 router.post('/:slug/crear', async (req, res) => {
   const {
     origen, destino, peso_kg, volumen_m3 = 0,
@@ -80,12 +77,28 @@ router.post('/:slug/crear', async (req, res) => {
     const preference = new Preference(mp);
 
     const numero = `TJ-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
+
+    // Guardar envío como pendiente_pago ANTES de ir a MP
+    const { rows: [envio] } = await db.query(
+      `INSERT INTO widget_envios
+         (empresa_id, origen, destino, peso_kg, tipo_servicio, precio_total,
+          numero_seguimiento, estado, remitente_json, destinatario_json, modalidad, forma_pago)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,'pendiente_pago',$8,$9,$10,$11)
+       RETURNING id`,
+      [empresa.id, origen, destino, peso_kg, tipo_servicio,
+       Math.round(precio_total / 1.21),
+       numero,
+       JSON.stringify(remitente || {}),
+       JSON.stringify(destinatario || {}),
+       modalidad, pago]
+    );
+
     const baseUrl = process.env.FRONTEND_URL || 'https://transporte-joaquin.onrender.com';
 
     const result = await preference.create({
       body: {
         items: [{
-          id: `${empresa.id}-${Date.now()}`,
+          id: String(envio.id),
           title: `Envío ${origen} → ${destino}`,
           description: `${tipo_servicio} · ${peso_kg}kg`,
           quantity: 1,
@@ -100,16 +113,6 @@ router.post('/:slug/crear', async (req, res) => {
         },
         auto_return: 'approved',
         notification_url: `${baseUrl}/api/pagos/webhook`,
-        metadata: {
-          numero_seguimiento: numero,
-          slug: req.params.slug,
-          empresa_id: empresa.id,
-          origen, destino, peso_kg, tipo_servicio,
-          precio_total: Math.round(precio_total / 1.21),
-          modalidad, forma_pago: pago,
-          remitente: JSON.stringify(remitente || {}),
-          destinatario: JSON.stringify(destinatario || {}),
-        },
       }
     });
 
@@ -125,7 +128,7 @@ router.post('/:slug/crear', async (req, res) => {
   }
 });
 
-    // POST /api/pagos/webhook — notificación de MP
+// POST /api/pagos/webhook
 router.post('/webhook', async (req, res) => {
   res.sendStatus(200);
   try {
@@ -135,7 +138,6 @@ router.post('/webhook', async (req, res) => {
     const paymentId = data?.id;
     if (!paymentId) return;
 
-    // Consultar el pago a MP
     const accessToken = process.env.MP_ACCESS_TOKEN;
     const r = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
       headers: { Authorization: `Bearer ${accessToken}` }
@@ -143,43 +145,29 @@ router.post('/webhook', async (req, res) => {
     const payment = await r.json();
 
     if (payment.status === 'approved') {
-      const meta = payment.metadata || {};
       const numero = payment.external_reference;
 
-      // Verificar que no exista ya (por si el webhook llega dos veces)
-      const { rows: [existe] } = await db.query(
-        'SELECT id FROM widget_envios WHERE numero_seguimiento = $1',
-        [numero]
-      );
-      if (existe) return;
-
-      // Crear el envío ahora que el pago está confirmado
       const { rows: [envio] } = await db.query(
-        `INSERT INTO widget_envios
-          (empresa_id, origen, destino, peso_kg, tipo_servicio, precio_total,
-            numero_seguimiento, estado, remitente_json, destinatario_json, modalidad, forma_pago, mp_payment_id)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,'confirmado',$8,$9,$10,$11,$12)
-        RETURNING id`,
-        [
-          meta.empresa_id, meta.origen, meta.destino, meta.peso_kg,
-          meta.tipo_servicio, meta.precio_total, numero,
-          meta.remitente || '{}', meta.destinatario || '{}',
-          meta.modalidad, meta.forma_pago, paymentId
-        ]
+        `UPDATE widget_envios SET estado = 'confirmado', mp_payment_id = $1
+         WHERE numero_seguimiento = $2 AND estado = 'pendiente_pago'
+         RETURNING id`,
+        [paymentId, numero]
       );
 
-      await db.query(
-        `INSERT INTO tracking_widget (envio_id, estado, descripcion)
-        VALUES ($1, 'confirmado', 'Pago aprobado. Envío confirmado y en preparación.')`,
-        [envio.id]
-      );
+      if (envio) {
+        await db.query(
+          `INSERT INTO tracking_widget (envio_id, estado, descripcion)
+           VALUES ($1, 'confirmado', 'Pago aprobado. Envío confirmado y en preparación.')`,
+          [envio.id]
+        );
+      }
     }
   } catch (e) {
     console.error('Webhook error:', e);
   }
 });
 
-// POST /api/pagos/:slug/confirmar-manual — confirmación manual desde el panel admin
+// POST /api/pagos/:slug/confirmar-manual
 router.post('/:slug/confirmar-manual', async (req, res) => {
   const { envio_id } = req.body;
   if (!envio_id) return res.status(400).json({ error: 'envio_id requerido' });
