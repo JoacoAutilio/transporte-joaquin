@@ -558,6 +558,11 @@
               '<p style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:12px">⚠️ Precio sujeto a modificación según pesaje real en sucursal.</p>',
               '<button id="cw-btn-pdf" disabled onclick="cwGenerarPDF(window._cwNumeroSucursal,\'pendiente_pago\')" style="background:#E8500A;border:none;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;opacity:.5">⏳ Generando número de seguimiento...</button>',
             '</div>',
+            '<div id="cw-whatsapp-box" style="display:none;margin-top:16px;background:rgba(255,255,255,.08);border-radius:10px;padding:16px;text-align:center">',
+              '<p style="font-size:13px;color:rgba(255,255,255,.8);margin-bottom:8px">📦 Tu pedido fue registrado. Coordiná el retiro por WhatsApp.</p>',
+              '<p style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:12px">⚠️ Precio sujeto a modificación según pesaje real.</p>',
+              '<a id="cw-btn-whatsapp" href="#" target="_blank" style="display:inline-block;background:#25D366;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;font-family:inherit">💬 Coordinar retiro por WhatsApp</a>',
+            '</div>',
             '<div class="cw-pago-loading" id="cw-pago-loading">Generando...</div>',
             '<div class="cw-qr-box" id="cw-qr-box">',
               '<p>Escaneá con cualquier app de pago</p>',
@@ -573,7 +578,25 @@
             sessionStorage.removeItem('cw_estado');
       // Mostrar u ocultar botones según forma de pago
       var pagarBtns = document.getElementById('cw-pay-btns');
-      var sucursalBox = document.getElementById('cw-sucursal-box');
+            var sucursalBox = document.getElementById('cw-sucursal-box');
+      var whatsappBox = document.getElementById('cw-whatsapp-box');
+
+      // Configurar botón WhatsApp si hay retiro a domicilio
+      if (modalidad === 'domicilio_domicilio') {
+        var telEmpresa = (window._cwEmpresa && window._cwEmpresa.telefono) ? window._cwEmpresa.telefono.replace(/\D/g,'') : '';
+        var msgWsp = encodeURIComponent(
+          'Hola! Quiero coordinar el retiro de mi paquete.\n' +
+          'Dirección: ' + dirRem + '\n' +
+          'Ruta: ' + origen + ' → ' + destino + '\n' +
+          'Servicio: ' + (sLabels[servicio] || servicio)
+        );
+        var linkWsp = 'https://wa.me/' + (telEmpresa ? '54' + telEmpresa : '') + '?text=' + msgWsp;
+        document.getElementById('cw-btn-whatsapp').href = linkWsp;
+        whatsappBox.style.display = 'block';
+      } else {
+        whatsappBox.style.display = 'none';
+      }
+
       if (pago === 'sucursal') {
         pagarBtns.style.display = 'none';
         sucursalBox.style.display = 'block';
