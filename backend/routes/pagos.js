@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const { MercadoPagoConfig, Preference } = require('mercadopago');
 const db = require('../db');
+const { enviarMailConfirmacion } = require('./mails');
 
 // Cada empresa tiene su propio Access Token de MP
 // Por ahora usamos el de la plataforma, después cada empresa configura el suyo
@@ -45,6 +46,7 @@ router.get('/confirmar/:numero', async (req, res) => {
           [envio.id]
         );
       }
+      enviarMailConfirmacion(envio.id);
     }
     res.json({ ok: true, estado: 'confirmado' });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -201,6 +203,7 @@ router.post('/webhook', async (req, res) => {
            VALUES ($1, 'confirmado', 'Pago aprobado. Envío confirmado y en preparación.')`,
           [envio.id]
         );
+        enviarMailConfirmacion(envio.id);
       }
     }
   } catch (e) {
@@ -223,6 +226,7 @@ router.post('/:slug/confirmar-manual', async (req, res) => {
        VALUES ($1, 'confirmado', 'Pago confirmado manualmente por la empresa.')`,
       [envio_id]
     );
+    enviarMailConfirmacion(envio_id);
     res.json({ ok: true, numero_seguimiento: envio.numero_seguimiento });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
