@@ -128,6 +128,47 @@ router.post('/:slug/crear', async (req, res) => {
   }
 });
 
+// POST /api/pagos/:slug/sucursal — registrar envío para pagar en sucursal (sin MP)
+router.post('/:slug/sucursal', async (req, res) => {
+  const {
+    origen, destino, peso_kg,
+    tipo_servicio = 'estandar', precio_total,
+    remitente, destinatario, modalidad,
+  } = req.body;
+
+  if (!precio_total || !origen || !destino) {
+    return res.status(400).json({ error: 'Faltan datos del envío' });
+  }
+
+  try {
+    const { rows: [empresa] } = await db.query(
+      'SELECT id FROM empresas WHERE slug = $1 AND activo = TRUE',
+      [req.params.slug]
+    );
+    if (!empresa) return res.status(404).json({ error: 'Empresa no encontrada' });
+
+    const numero = `TJ-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
+
+    await db.query(
+      `INSERT INTO widget_envios
+         (empresa_id, origen, destino, peso_kg, tipo_servicio, precio_total,
+          numero_seguimiento, estado, remitente_json, destinatario_json, modalidad, forma_pago)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,'pendiente_pago',$8,$9,$10,'sucursal')`,
+      [empresa.id, origen, destino, peso_kg, tipo_servicio,
+       Math.round(precio_total / 1.21),
+       numero,
+       JSON.stringify(remitente || {}),
+       JSON.stringify(destinatario || {}),
+       modalidad]
+    );
+
+    res.json({ numero_seguimiento: numero });
+  } catch (e) {
+    console.error('Sucursal error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // POST /api/pagos/webhook
 router.post('/webhook', async (req, res) => {
   res.sendStatus(200);

@@ -516,7 +516,7 @@
         var total=Math.round(sinIVA*1.21);
         var fmt=function(n){return '$'+Math.round(n).toLocaleString('es-AR');};
         var mLabels={deposito_sucursal:'Depósito → Sucursal',deposito_domicilio:'Depósito → Domicilio',domicilio_domicilio:'Domicilio → Domicilio'};
-        var pLabels={origen:'Pago en origen',destino:'Pago en destino'};
+        var pLabels={origen:'Pago en origen',destino:'Pago en destino',sucursal:'Pago en sucursal'};
         var sLabels={estandar:'Estándar',express:'Express 48h',consolidado:'Consolidado'};
         var remLabel=tipoRem==='empresa'?remNom:remAp+', '+remNom;
         var destLabel=tipoDest==='empresa'?destNom:destAp+', '+destNom;
@@ -556,7 +556,7 @@
             '<div id="cw-sucursal-box" style="display:none;margin-top:16px;background:rgba(255,255,255,.08);border-radius:10px;padding:16px;text-align:center">',
               '<p style="font-size:13px;color:rgba(255,255,255,.8);margin-bottom:8px">📍 Presentate en nuestra sucursal con este resumen para abonar y dejar tu paquete.</p>',
               '<p style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:12px">⚠️ Precio sujeto a modificación según pesaje real en sucursal.</p>',
-              '<button onclick="cwGenerarPDF(\'pendiente\',\'pendiente_pago\')" style="background:#E8500A;border:none;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">📄 Descargar cotización PDF</button>',
+              '<button id="cw-btn-pdf" disabled onclick="cwGenerarPDF(window._cwNumeroSucursal,\'pendiente_pago\')" style="background:#E8500A;border:none;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;opacity:.5">⏳ Generando número de seguimiento...</button>',
             '</div>',
             '<div class="cw-pago-loading" id="cw-pago-loading">Generando...</div>',
             '<div class="cw-qr-box" id="cw-qr-box">',
@@ -577,6 +577,7 @@
       if (pago === 'sucursal') {
         pagarBtns.style.display = 'none';
         sucursalBox.style.display = 'block';
+        cwRegistrarSucursal();
       } else {
         pagarBtns.style.display = 'grid';
         sucursalBox.style.display = 'none';
@@ -588,6 +589,38 @@
         btnNext.disabled=false; btnNext.textContent='Ver precio 💰';
       }
     };
+
+    // ── Registrar envío para pago en sucursal y habilitar PDF con el número real
+    async function cwRegistrarSucursal() {
+      var btn = document.getElementById('cw-btn-pdf');
+      var codigo = document.getElementById('cw-codigo');
+      var key = JSON.stringify(window._cwCotizacion);
+      var setListo = function(numero) {
+        window._cwNumeroSucursal = numero;
+        codigo.textContent = numero; codigo.style.opacity = '1';
+        btn.disabled = false; btn.style.opacity = '1';
+        btn.textContent = '📄 Descargar cotización PDF';
+      };
+      // Evitar crear un envío duplicado si la cotización no cambió
+      if (window._cwSucursalKey === key && window._cwNumeroSucursal) return setListo(window._cwNumeroSucursal);
+      window._cwNumeroSucursal = null;
+      try {
+        var r = await fetch(API_BASE+'/api/pagos/'+empresa+'/sucursal',{method:'POST',headers:{'Content-Type':'application/json'},body:key});
+        var d = await r.json();
+        if (!r.ok) throw new Error(d.error||'Error al registrar el envío');
+        window._cwSucursalKey = key;
+        setListo(d.numero_seguimiento);
+      } catch(e) {
+        btn.textContent = '⚠️ Error, tocá para reintentar';
+        btn.disabled = false; btn.style.opacity = '1';
+        btn.onclick = function() {
+          btn.onclick = function() { cwGenerarPDF(window._cwNumeroSucursal,'pendiente_pago'); };
+          btn.disabled = true; btn.style.opacity = '.5';
+          btn.textContent = '⏳ Generando número de seguimiento...';
+          cwRegistrarSucursal();
+        };
+      }
+    }
 
     // ── Pagar online
     window.cwPagar = async function() {
