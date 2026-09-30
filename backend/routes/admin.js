@@ -201,4 +201,46 @@ router.put('/configuracion', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+
+// ── CANCELAR ENVÍO ────────────────────────────────────────────
+
+router.patch('/envios/:id/cancelar', async (req, res) => {
+  const { motivo } = req.body;
+  try {
+    const { rows } = await db.query(
+      `SELECT estado FROM widget_envios WHERE id = $1 AND empresa_id = $2`,
+      [req.params.id, req.empresa.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Envío no encontrado' });
+    if (rows[0].estado === 'cancelado') return res.status(400).json({ error: 'Ya está cancelado' });
+
+    await db.query(
+      `UPDATE widget_envios SET estado = 'cancelado' WHERE id = $1 AND empresa_id = $2`,
+      [req.params.id, req.empresa.id]
+    );
+    await db.query(
+      `INSERT INTO tracking_widget (envio_id, estado, descripcion)
+       VALUES ($1, 'cancelado', $2)`,
+      [req.params.id, motivo || 'Envío cancelado por la empresa']
+    );
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── ELIMINAR ENVÍO (solo si está cancelado) ───────────────────
+
+router.delete('/envios/:id', async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT estado FROM widget_envios WHERE id = $1 AND empresa_id = $2`,
+      [req.params.id, req.empresa.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Envío no encontrado' });
+    if (rows[0].estado !== 'cancelado') return res.status(400).json({ error: 'Solo se pueden eliminar envíos cancelados' });
+
+    await db.query(`DELETE FROM tracking_widget WHERE envio_id = $1`, [req.params.id]);
+    await db.query(`DELETE FROM widget_envios WHERE id = $1 AND empresa_id = $2`, [req.params.id, req.empresa.id]);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
 module.exports = router;

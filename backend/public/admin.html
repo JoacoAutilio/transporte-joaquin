@@ -213,6 +213,17 @@ tr:last-child td{border-bottom:none}
         <div class="card">
           <div class="card-hdr">
             <h2>📦 Envíos recientes</h2>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+            <button class="btn btn-sm" id="filtro-todos" onclick="filtrarEstado('')" style="background:var(--ac);color:#fff">Todos</button>
+            <button class="btn btn-sm" onclick="filtrarEstado('confirmado')" style="background:#3b82f622;color:#3b82f6;border:1px solid #3b82f6">Confirmado</button>
+            <button class="btn btn-sm" onclick="filtrarEstado('en_transito')" style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b">En tránsito</button>
+            <button class="btn btn-sm" onclick="filtrarEstado('en_destino')" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf6">En destino</button>
+            <button class="btn btn-sm" onclick="filtrarEstado('entregado')" style="background:#10b98122;color:#10b981;border:1px solid #10b981">Entregado</button>
+            <button class="btn btn-sm" onclick="filtrarEstado('cancelado')" style="background:#ef444422;color:#ef4444;border:1px solid #ef4444">Cancelado</button>
+            <button class="btn btn-sm" onclick="filtrarEstado('pendiente_pago')" style="background:#6b728022;color:#6b7280;border:1px solid #6b7280">Pendiente pago</button>
+          </div>
+          <div class="card-hdr" style="padding-top:0">
             <input id="envios-search" placeholder="Buscar por número..." style="padding:7px 12px;border:1px solid var(--bd);border-radius:7px;font-size:13px;outline:none;width:200px" oninput="filtrarEnvios()">
           </div>
           <table>
@@ -811,21 +822,52 @@ function renderEnvios(envios) {
       <td><span style="background:${col}22;color:${col};padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">${label}</span></td>
       <td style="font-size:12px">${fecha}</td>
       <td>
-        <button class="btn btn-sm btn-or" onclick="abrirEstado(${e.id},'${e.numero_seguimiento}','${e.origen}','${e.destino}','${e.estado}')">
-          Actualizar
-        </button>
+                <button class="btn btn-sm btn-or" onclick="abrirEstado(${e.id},'${e.numero_seguimiento}','${e.origen}','${e.destino}','${e.estado}')">Actualizar</button>
+        ${e.estado !== 'cancelado' ? `<button class="btn btn-sm" onclick="cancelarEnvio(${e.id},'${e.numero_seguimiento}')" style="background:#ef444422;color:#ef4444;border:1px solid #ef4444;margin-left:4px">Cancelar</button>` : ''}
+        ${e.estado === 'cancelado' ? `<button class="btn btn-sm" onclick="eliminarEnvio(${e.id},'${e.numero_seguimiento}')" style="background:#6b728022;color:#6b7280;border:1px solid #6b7280;margin-left:4px">🗑 Eliminar</button>` : ''}
       </td>
     </tr>`;
   }).join('');
 }
 
-function filtrarEnvios() {
+let filtroEstadoActual = '';
+
+function filtrarEstado(estado) {
+  filtroEstadoActual = estado;
+  filtrarEnvios();
+}
+
+function filtrarEnvios_base() {
   const q = document.getElementById('envios-search').value.toLowerCase();
-  renderEnvios(todosEnvios.filter(e =>
+  let resultado = todosEnvios;
+  if (filtroEstadoActual) resultado = resultado.filter(e => e.estado === filtroEstadoActual);
+  if (q) resultado = resultado.filter(e =>
     e.numero_seguimiento.toLowerCase().includes(q) ||
     e.origen.toLowerCase().includes(q) ||
     e.destino.toLowerCase().includes(q)
-  ));
+  );
+  renderEnvios(resultado);
+}
+
+async function cancelarEnvio(id, numero) {
+  const motivo = prompt('Motivo de cancelación para ' + numero + ' (opcional):');
+  if (motivo === null) return;
+  const r = await api('/api/admin/envios/' + id + '/cancelar', 'PATCH', { motivo: motivo.trim() || null });
+  if (!r) return;
+  toast('Envío cancelado');
+  loadEnvios();
+}
+
+async function eliminarEnvio(id, numero) {
+  if (!confirm('¿Eliminar definitivamente el envío ' + numero + '? Esta acción no se puede deshacer.')) return;
+  const r = await api('/api/admin/envios/' + id, 'DELETE');
+  if (!r) return;
+  toast('Envío eliminado');
+  loadEnvios();
+}
+
+function filtrarEnvios() {
+  filtrarEnvios_base();
 }
 
 function abrirEstado(id, numero, origen, destino, estadoActual) {
