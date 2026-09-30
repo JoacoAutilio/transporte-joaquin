@@ -109,7 +109,7 @@ router.post('/:slug/crear', async (req, res) => {
         }],
         external_reference: numero,
         back_urls: {
-          success: `${baseUrl}/pago-exitoso.html?numero=${numero}`,
+          success: `${baseUrl}/pago-exitoso.html?numero=${numero}&modalidad=${modalidad}&slug=${req.params.slug}`,
           failure: `${baseUrl}/pago-fallido.html`,
           pending: `${baseUrl}/pago-pendiente.html?numero=${numero}`,
         },
