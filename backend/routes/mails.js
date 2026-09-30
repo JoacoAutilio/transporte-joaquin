@@ -148,7 +148,7 @@ async function enviarMailConfirmacion(envioId) {
     if (!e) return console.warn(`Mail: envío ${envioId} no encontrado`);
 
     const { rows: [emp] } = await db.query(
-      'SELECT nombre, email, telefono FROM empresas WHERE id = $1',
+      'SELECT nombre, email_admin AS email, telefono FROM empresas WHERE id = $1',
       [e.empresa_id]
     );
     if (!emp) return console.warn(`Mail: empresa del envío ${envioId} no encontrada`);
