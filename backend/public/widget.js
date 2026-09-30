@@ -1,3 +1,9 @@
+// Cargar jsPDF
+(function() {
+  var s = document.createElement('script');
+  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+  document.head.appendChild(s);
+})();
 (function () {
   var scriptTag   = document.currentScript;
   var empresa     = scriptTag.getAttribute('data-empresa') || 'transporte-joaquin';
@@ -546,10 +552,10 @@
             '<div class="cw-pay-btns" id="cw-pay-btns">',
               '<button class="cw-pay-btn cw-pay-primary" id="cw-btn-pagar" onclick="cwPagar()">💳 Pagar online</button>',
               '<button class="cw-pay-btn cw-pay-secondary" id="cw-btn-qr" onclick="cwPagarQR()">📱 Pagar con QR</button>',
-            '</div>',
-            '<div id="cw-sucursal-box" style="display:none;margin-top:16px;background:rgba(255,255,255,.08);border-radius:10px;padding:16px;text-align:center">',
+              '<div id="cw-sucursal-box" style="display:none;margin-top:16px;background:rgba(255,255,255,.08);border-radius:10px;padding:16px;text-align:center">',
               '<p style="font-size:13px;color:rgba(255,255,255,.8);margin-bottom:8px">📍 Presentate en nuestra sucursal con este resumen para abonar y dejar tu paquete.</p>',
-              '<p style="font-size:11px;color:rgba(255,255,255,.5)">⚠️ Precio sujeto a modificación según pesaje real en sucursal.</p>',
+              '<p style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:12px">⚠️ Precio sujeto a modificación según pesaje real en sucursal.</p>',
+              '<button onclick="cwGenerarPDF(\'pendiente\',\'pendiente_pago\')" style="background:#E8500A;border:none;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">📄 Descargar cotización PDF</button>',
             '</div>',
             '<div class="cw-pago-loading" id="cw-pago-loading">Generando...</div>',
             '<div class="cw-qr-box" id="cw-qr-box">',
@@ -635,6 +641,175 @@
     };
 
     // ── Pagar con QR
+        // ── Generar PDF
+    window.cwGenerarPDF = function(numero, estado) {
+      if (typeof window.jspdf === 'undefined') {
+        alert('Cargando PDF, intentá de nuevo en un momento.');
+        return;
+      }
+      var doc = new window.jspdf.jsPDF();
+      var cot = window._cwCotizacion || {};
+      var rem = cot.remitente || {};
+      var dest = cot.destinatario || {};
+      var emp = window._cwEmpresa || {};
+      var fmt = function(n){ return '$' + Math.round(n).toLocaleString('es-AR'); };
+      var sinIVA = Math.round((cot.precio_total || 0) / 1.21);
+      var iva = Math.round(sinIVA * 0.21);
+
+      // Colores
+      var naranja = [232, 80, 10];
+      var azul = [11, 30, 61];
+
+      // Header
+      doc.setFillColor(azul[0], azul[1], azul[2]);
+      doc.rect(0, 0, 210, 28, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(20);
+      doc.setFont('helvetica', 'bold');
+      doc.text(emp.nombre || 'Transporte', 14, 16);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Cotización de envío', 14, 23);
+
+      // Número de cotización
+      doc.setFillColor(naranja[0], naranja[1], naranja[2]);
+      doc.rect(130, 6, 70, 16, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.text('CÓDIGO DE SEGUIMIENTO', 165, 12, { align: 'center' });
+      doc.setFontSize(12);
+      doc.text(numero || 'Pendiente', 165, 19, { align: 'center' });
+
+      // Estado
+      doc.setTextColor(azul[0], azul[1], azul[2]);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      var estadoTexto = estado === 'pendiente_pago' ? 'Pendiente de pago' : 'Confirmado ✓';
+      doc.text('Estado: ' + estadoTexto, 14, 36);
+
+      // Ruta
+      doc.setFillColor(naranja[0], naranja[1], naranja[2]);
+      doc.rect(0, 40, 210, 8, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.text('CIUDAD ORIGEN: ' + (cot.origen || '—'), 14, 46);
+
+      doc.setFillColor(naranja[0], naranja[1], naranja[2]);
+      doc.rect(0, 50, 210, 8, 'F');
+      doc.text('CIUDAD DESTINO: ' + (cot.destino || '—'), 14, 56);
+
+      // Datos del envío
+      doc.setTextColor(50, 50, 50);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      var y = 68;
+      var col1 = 14, col2 = 110;
+
+      doc.setFont('helvetica', 'bold');
+      doc.text('Remitente:', col1, y);
+      doc.setFont('helvetica', 'normal');
+      doc.text((rem.nombre || '') + ' ' + (rem.apellido || ''), col1 + 28, y);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Destinatario:', col2, y);
+      doc.setFont('helvetica', 'normal');
+      doc.text((dest.nombre || '') + ' ' + (dest.apellido || ''), col2 + 30, y);
+      y += 7;
+
+      doc.setFont('helvetica', 'bold');
+      doc.text('Dirección retiro:', col1, y);
+      doc.setFont('helvetica', 'normal');
+      doc.text((rem.calle || '') + ' ' + (rem.numero || ''), col1 + 36, y);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Dirección entrega:', col2, y);
+      doc.setFont('helvetica', 'normal');
+      doc.text((dest.calle || '') + ' ' + (dest.numero || ''), col2 + 38, y);
+      y += 7;
+
+      doc.setFont('helvetica', 'bold');
+      doc.text('Celular:', col1, y);
+      doc.setFont('helvetica', 'normal');
+      doc.text(rem.celular || '—', col1 + 18, y);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Celular:', col2, y);
+      doc.setFont('helvetica', 'normal');
+      doc.text(dest.celular || '—', col2 + 18, y);
+      y += 12;
+
+      // Detalles del envío
+      doc.setFillColor(240, 240, 240);
+      doc.rect(14, y - 4, 182, 7, 'F');
+      doc.setTextColor(azul[0], azul[1], azul[2]);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.text('DETALLE DEL ENVÍO', 14, y + 1);
+      y += 10;
+
+      var sLabels = {estandar:'Estándar', express:'Express 48h', consolidado:'Consolidado'};
+      var pLabels = {origen:'Pago en origen', destino:'Pago en destino', sucursal:'Pago en sucursal'};
+      var mLabels = {deposito_sucursal:'Depósito → Sucursal', deposito_domicilio:'Depósito → Domicilio', domicilio_domicilio:'Domicilio → Domicilio'};
+
+      var detalles = [
+        ['Servicio', sLabels[cot.tipo_servicio] || cot.tipo_servicio || '—'],
+        ['Modalidad', mLabels[cot.modalidad] || '—'],
+        ['Forma de pago', pLabels[cot.pago] || '—'],
+        ['Peso', (cot.peso_kg || '—') + ' kg'],
+      ];
+
+      doc.setTextColor(50, 50, 50);
+      doc.setFont('helvetica', 'normal');
+      detalles.forEach(function(d) {
+        doc.setFont('helvetica', 'bold');
+        doc.text(d[0] + ':', col1, y);
+        doc.setFont('helvetica', 'normal');
+        doc.text(d[1], col1 + 35, y);
+        y += 7;
+      });
+
+      y += 5;
+
+      // Precio
+      doc.setFillColor(240, 240, 240);
+      doc.rect(14, y - 4, 182, 7, 'F');
+      doc.setTextColor(azul[0], azul[1], azul[2]);
+      doc.setFont('helvetica', 'bold');
+      doc.text('PRECIO FINAL DEL ENVÍO: ' + fmt(cot.precio_total || 0), 14, y + 1);
+      y += 12;
+
+      doc.setTextColor(50, 50, 50);
+      doc.setFont('helvetica', 'normal');
+      var precios = [
+        ['Flete (sin IVA)', fmt(sinIVA)],
+        ['IVA (21%)', fmt(iva)],
+        ['Total', fmt(cot.precio_total || 0)],
+      ];
+      precios.forEach(function(p) {
+        doc.text(p[0] + ':', col1, y);
+        doc.text(p[1], col1 + 50, y);
+        y += 6;
+      });
+
+      y += 8;
+
+      // Advertencia
+      doc.setFillColor(255, 243, 205);
+      doc.rect(14, y - 4, 182, 12, 'F');
+      doc.setTextColor(150, 100, 0);
+      doc.setFontSize(8);
+      doc.text('⚠️ Cotización sujeta a modificación según pesaje real en sucursal. Válida por 30 días.', 14, y + 2);
+
+      // Footer
+      doc.setFillColor(azul[0], azul[1], azul[2]);
+      doc.rect(0, 277, 210, 20, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Ante cualquier duda, contactanos. Gracias por elegirnos.', 105, 285, { align: 'center' });
+      if (emp.telefono) doc.text('Tel: ' + emp.telefono, 105, 291, { align: 'center' });
+
+      doc.save('cotizacion-' + (numero || 'pendiente') + '.pdf');
+    };
     window.cwPagarQR = async function() {
       if(!window._cwCotizacion) return;
       var btn=document.getElementById('cw-btn-qr');
