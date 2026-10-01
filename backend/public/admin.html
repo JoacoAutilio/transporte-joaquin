@@ -823,6 +823,7 @@ function renderEnvios(envios) {
       <td style="font-size:12px">${fecha}</td>
       <td>
                 <button class="btn btn-sm btn-or" onclick="abrirEstado(${e.id},'${e.numero_seguimiento}','${e.origen}','${e.destino}','${e.estado}')">Actualizar</button>
+        ${e.estado === 'confirmado' ? `<button class="btn btn-sm" onclick="abrirRemito(${e.id},'${e.numero_seguimiento}')" style="background:#0B1E3D22;color:#0B1E3D;border:1px solid #0B1E3D;margin-left:4px">📋 Remito</button>` : ''}
         ${e.estado !== 'cancelado' ? `<button class="btn btn-sm" onclick="cancelarEnvio(${e.id},'${e.numero_seguimiento}')" style="background:#ef444422;color:#ef4444;border:1px solid #ef4444;margin-left:4px">Cancelar</button>` : ''}
         ${e.estado === 'cancelado' ? `<button class="btn btn-sm" onclick="eliminarEnvio(${e.id},'${e.numero_seguimiento}')" style="background:#6b728022;color:#6b7280;border:1px solid #6b7280;margin-left:4px">🗑 Eliminar</button>` : ''}
       </td>
@@ -856,6 +857,61 @@ async function cancelarEnvio(id, numero) {
   if (!r) return;
   toast('Envío cancelado');
   loadEnvios();
+}
+
+async function abrirRemito(id, numero) {
+  const r = await api('/api/admin/envios/' + id + '/remito/datos');
+  if (!r) return;
+  const d = await r.json();
+  document.getElementById('remito-envio-id').value = id;
+  document.getElementById('remito-numero').textContent = numero;
+  document.getElementById('remito-ruta').textContent = d.origen + ' → ' + d.destino;
+  document.getElementById('remito-peso').value = d.peso_kg || '';
+  document.getElementById('remito-bultos').value = d.bultos || 1;
+  document.getElementById('remito-alto').value = d.alto_cm || '';
+  document.getElementById('remito-ancho').value = d.ancho_cm || '';
+  document.getElementById('remito-largo').value = d.largo_cm || '';
+  document.getElementById('remito-obs').value = '';
+  document.getElementById('remito-empleado').value = '';
+  document.getElementById('remito-precio-info').style.display = 'none';
+  window._remitoData = d;
+  // Mostrar diferencia de precio si el peso cambió
+  document.getElementById('remito-peso').oninput = function() {
+    const pesoReal = parseFloat(this.value) || 0;
+    const pesoOrig = parseFloat(d.peso_kg) || 0;
+    const info = document.getElementById('remito-precio-info');
+    if (pesoReal !== pesoOrig && pesoReal > 0) {
+      const diff = pesoReal - pesoOrig;
+      info.style.display = 'block';
+      info.innerHTML = diff > 0
+        ? '⚠️ El peso real es <strong>' + diff.toFixed(1) + ' kg mayor</strong> al cotizado. El precio podría ajustarse.'
+        : '✅ El peso real es <strong>' + Math.abs(diff).toFixed(1) + ' kg menor</strong> al cotizado.';
+        } else {
+      info.style.display = 'none';
+    }
+  };
+  openMo('mo-remito');
+}
+
+async function confirmarRemito() {
+  const id = document.getElementById('remito-envio-id').value;
+  const body = {
+    peso_real_kg: document.getElementById('remito-peso').value || null,
+    bultos: document.getElementById('remito-bultos').value || null,
+    alto_cm: document.getElementById('remito-alto').value || null,
+    ancho_cm: document.getElementById('remito-ancho').value || null,
+    largo_cm: document.getElementById('remito-largo').value || null,
+    observaciones_recepcion: document.getElementById('remito-obs').value.trim() || null,
+    confirmado_por: document.getElementById('remito-empleado').value.trim() || null,
+  };
+  const r = await api('/api/admin/envios/' + id + '/remito', 'PATCH', body);
+  if (!r) return;
+  const d = await r.json();
+  if (!r.ok) { toast(d.error, false); return; }
+  closeMo('mo-remito');
+  toast('Recepción confirmada');
+  loadEnvios();
+  window.open('/api/admin/envios/' + id + '/remito/pdf?token=' + TOKEN, '_blank');
 }
 
 async function eliminarEnvio(id, numero) {
@@ -1016,6 +1072,39 @@ window.nav = function(pg, el) {
     <div class="mo-foot">
       <button class="btn btn-outline" onclick="closeMo('mo-estado')">Cancelar</button>
       <button class="btn btn-or" onclick="guardarEstado()">Actualizar estado</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL REMITO -->
+<div class="mo" id="mo-remito">
+  <div class="mo-box" style="max-width:600px">
+    <div class="mo-hdr">
+      <h3>📋 Preparar remito</h3>
+      <button class="mo-close" onclick="closeMo('mo-remito')">✕</button>
+    </div>
+    <div class="mo-body">
+      <input type="hidden" id="remito-envio-id">
+      <div style="background:#f9fafb;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:13px">
+        <strong id="remito-numero"></strong><br>
+        <span style="color:var(--mt)" id="remito-ruta"></span>
+      </div>
+      <div class="form-grid-2">
+        <div class="form-row"><label>Peso real (kg)</label><input id="remito-peso" type="number" min="0" step="0.1" placeholder="50"></div>
+        <div class="form-row"><label>Cantidad de bultos</label><input id="remito-bultos" type="number" min="1" placeholder="1"></div>
+      </div>
+      <div class="form-grid-3">
+        <div class="form-row"><label>Alto (cm)</label><input id="remito-alto" type="number" min="0" placeholder="100"></div>
+        <div class="form-row"><label>Ancho (cm)</label><input id="remito-ancho" type="number" min="0" placeholder="100"></div>
+        <div class="form-row"><label>Largo (cm)</label><input id="remito-largo" type="number" min="0" placeholder="100"></div>
+      </div>
+      <div class="form-row"><label>Nombre del empleado que recibe</label><input id="remito-empleado" placeholder="Juan Pérez"></div>
+      <div class="form-row"><label>Observaciones (opcional)</label><textarea id="remito-obs" rows="3" placeholder="Estado del embalaje, diferencias, etc."></textarea></div>
+      <div id="remito-precio-info" style="display:none;background:#fff8e1;border:1px solid #ffd54f;border-radius:8px;padding:12px;font-size:13px;margin-top:8px"></div>
+    </div>
+    <div class="mo-foot">
+      <button class="btn btn-outline" onclick="closeMo('mo-remito')">Cancelar</button>
+      <button class="btn btn-or" onclick="confirmarRemito()">Confirmar recepción e imprimir</button>
     </div>
   </div>
 </div>
