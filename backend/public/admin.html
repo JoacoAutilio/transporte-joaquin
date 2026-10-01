@@ -115,6 +115,7 @@ tr:last-child td{border-bottom:none}
 .bar-f{height:100%;background:var(--or);border-radius:3px}
 .muted{color:var(--mt)}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -911,7 +912,7 @@ async function confirmarRemito() {
   closeMo('mo-remito');
   toast('Recepción confirmada');
   loadEnvios();
-  window.open('/api/admin/envios/' + id + '/remito/pdf?token=' + TOKEN, '_blank');
+  generarPDFRemito(d, body);
 }
 
 async function eliminarEnvio(id, numero) {
@@ -924,6 +925,123 @@ async function eliminarEnvio(id, numero) {
 
 function filtrarEnvios() {
   filtrarEnvios_base();
+}
+
+async function generarPDFRemito(envio, recepcion) {
+  const { jsPDF } = window.jspdf;
+  if (!jsPDF) { alert('Error: jsPDF no disponible'); return; }
+  const color = (envio.color_primario || '#E8500A').replace('#','');
+  const r = parseInt(color.substring(0,2),16);
+  const g = parseInt(color.substring(2,4),16);
+  const b = parseInt(color.substring(4,6),16);
+
+  function addCopy(doc, offsetY) {
+    // Header empresa
+    doc.setFillColor(r,g,b);
+    doc.rect(0, offsetY, 210, 18, 'F');
+    doc.setTextColor(255,255,255);
+    doc.setFontSize(14); doc.setFont('helvetica','bold');
+    doc.text(envio.empresa_nombre || 'Empresa', 14, offsetY+12);
+    doc.setFontSize(9); doc.setFont('helvetica','normal');
+    doc.text('Tel: ' + (envio.empresa_telefono || '-'), 140, offsetY+12);
+
+    // Título remito
+    doc.setTextColor(0,0,0);
+    doc.setFontSize(16); doc.setFont('helvetica','bold');
+    doc.text('REMITO', 150, offsetY+28);
+    doc.setFontSize(10); doc.setFont('helvetica','normal');
+    doc.text('N° ' + (envio.numero_seguimiento || '-'), 150, offsetY+35);
+    doc.text('Fecha: ' + new Date().toLocaleDateString('es-AR'), 150, offsetY+41);
+
+    // Datos remitente
+    const rem = envio.remitente || {};
+    doc.setFontSize(9); doc.setFont('helvetica','bold');
+    doc.text('REMITENTE', 14, offsetY+28);
+    doc.setFont('helvetica','normal');
+    doc.text((rem.nombre||'') + ' ' + (rem.apellido||''), 14, offsetY+34);
+    doc.text('Tel: ' + (rem.telefono||'-'), 14, offsetY+39);
+    doc.text('Dir: ' + (rem.calle||'') + ' ' + (rem.numero||'') + ' (CP ' + (rem.cp||'-') + ')', 14, offsetY+44);
+
+    // Datos destinatario
+    const dest = envio.destinatario || {};
+    doc.setFont('helvetica','bold');
+    doc.text('DESTINATARIO', 14, offsetY+54);
+    doc.setFont('helvetica','normal');
+    doc.text((dest.nombre||'') + ' ' + (dest.apellido||''), 14, offsetY+60);
+    doc.text('Tel: ' + (dest.telefono||'-'), 14, offsetY+65);
+    doc.text('Dir: ' + (dest.calle||'') + ' ' + (dest.numero||'') + ' (CP ' + (dest.cp||'-') + ')', 14, offsetY+70);
+
+    // Ruta
+    doc.setFillColor(240,240,240);
+    doc.rect(14, offsetY+75, 182, 8, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(10);
+    doc.text('Ruta: ' + envio.origen + '  →  ' + envio.destino, 16, offsetY+81);
+
+    // Tabla detalle
+    doc.setFontSize(9); doc.setFont('helvetica','bold');
+    doc.text('Descripción', 14, offsetY+93);
+    doc.text('Bultos', 100, offsetY+93);
+    doc.text('Peso cotizado', 120, offsetY+93);
+    doc.text('Peso real', 155, offsetY+93);
+    doc.line(14, offsetY+95, 196, offsetY+95);
+    doc.setFont('helvetica','normal');
+    doc.text(envio.tipo_servicio || 'Estándar', 14, offsetY+102);
+    doc.text(String(recepcion.bultos || envio.bultos || 1), 100, offsetY+102);
+    doc.text((envio.peso_kg||'-') + ' kg', 120, offsetY+102);
+    doc.text((recepcion.peso_real_kg || envio.peso_kg || '-') + ' kg', 155, offsetY+102);
+
+    // Dimensiones
+    doc.setFont('helvetica','bold');
+    doc.text('Dimensiones (cm):', 14, offsetY+112);
+    doc.setFont('helvetica','normal');
+    doc.text('Alto: ' + (recepcion.alto_cm || envio.alto_cm || '-') +
+             '  Ancho: ' + (recepcion.ancho_cm || envio.ancho_cm || '-') +
+             '  Largo: ' + (recepcion.largo_cm || envio.largo_cm || '-'), 14, offsetY+118);
+
+    // Precio
+    doc.setFont('helvetica','bold');
+    doc.text('Precio total: $' + Math.round(envio.precio_total||0).toLocaleString('es-AR'), 14, offsetY+128);
+
+    // Observaciones
+    if (recepcion.observaciones_recepcion) {
+      doc.setFont('helvetica','bold');
+      doc.text('Observaciones:', 14, offsetY+138);
+      doc.setFont('helvetica','normal');
+      doc.text(recepcion.observaciones_recepcion, 14, offsetY+144);
+    }
+
+    // Código de seguimiento
+    doc.setFillColor(r,g,b);
+    doc.rect(14, offsetY+150, 90, 20, 'F');
+    doc.setTextColor(255,255,255);
+    doc.setFontSize(8); doc.setFont('helvetica','bold');
+    doc.text('CÓDIGO DE SEGUIMIENTO', 16, offsetY+157);
+    doc.setFontSize(12);
+    doc.text(envio.numero_seguimiento || '-', 16, offsetY+165);
+    doc.setTextColor(0,0,0);
+
+    // Firmas
+    doc.setFontSize(9); doc.setFont('helvetica','normal');
+    doc.line(14, offsetY+185, 80, offsetY+185);
+    doc.line(110, offsetY+185, 196, offsetY+185);
+    doc.text('Firma y aclaración remitente', 14, offsetY+190);
+    doc.text('Firma y aclaración transportista', 110, offsetY+190);
+    if (recepcion.confirmado_por) {
+      doc.text('Recibido por: ' + recepcion.confirmado_por, 14, offsetY+198);
+    }
+    doc.setDrawColor(150,150,150);
+    doc.setLineDash([3,3]);
+    doc.line(0, offsetY+205, 210, offsetY+205);
+    doc.setLineDash([]);
+    doc.setFontSize(8); doc.setTextColor(150,150,150);
+    doc.text('✂ COPIE AQUÍ', 90, offsetY+208);
+    doc.setTextColor(0,0,0);
+  }
+
+  const doc = new jsPDF({ unit:'mm', format:'a4' });
+  addCopy(doc, 2);
+  addCopy(doc, 210);
+  doc.save('remito-' + (envio.numero_seguimiento||'envio') + '.pdf');
 }
 
 function abrirEstado(id, numero, origen, destino, estadoActual) {
