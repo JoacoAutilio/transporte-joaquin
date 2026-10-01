@@ -46,6 +46,7 @@ p{font-size:14px;color:#6b7280;line-height:1.6;margin-bottom:20px}
     }
     var origenUrl = sessionStorage.getItem('cw_origen_url');
     var el = document.getElementById('info-envio');
+    await cargarWhatsapp();
     if (origenUrl && numero) {
       sessionStorage.setItem('tracking_numero', numero);
       var countdown = 4;
@@ -59,8 +60,7 @@ p{font-size:14px;color:#6b7280;line-height:1.6;margin-bottom:20px}
         }
       }, 1000);
     } else {
-            el.textContent = 'Envío confirmado y en proceso.';
-      await cargarWhatsapp();
+      el.textContent = 'Envío confirmado y en proceso.';
     }
   }
 
