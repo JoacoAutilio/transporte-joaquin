@@ -46,8 +46,9 @@ p{font-size:14px;color:#6b7280;line-height:1.6;margin-bottom:20px}
     }
     var origenUrl = sessionStorage.getItem('cw_origen_url');
     var el = document.getElementById('info-envio');
-    await cargarWhatsapp();
-    if (origenUrl && numero) {
+    if (modalidad === 'domicilio_domicilio') {
+      await cargarWhatsapp(true);
+    } else if (origenUrl && numero) {
       sessionStorage.setItem('tracking_numero', numero);
       var countdown = 4;
       el.innerHTML = 'Serás redirigido en <strong>' + countdown + '</strong> segundos...';
@@ -70,7 +71,7 @@ p{font-size:14px;color:#6b7280;line-height:1.6;margin-bottom:20px}
     navigator.clipboard && navigator.clipboard.writeText(numero)
       .then(function() { alert('Código copiado: ' + numero); });
   }
-async function cargarWhatsapp() {
+async function cargarWhatsapp(autoRedirigir) {
     if (modalidad !== 'domicilio_domicilio') return;
     try {
       var r = await fetch('/api/widget/' + slug + '/config');
@@ -86,14 +87,28 @@ async function cargarWhatsapp() {
         'Hola! Quiero coordinar el retiro de mi paquete.\n' +
         'Código: ' + numero + '\n' +
         'Dirección de retiro: ' + dirRetiro + '\n' +
-        'Ruta: ' + (envio.origen || '') + ' → ' + (envio.destino || '')
+        'Ruta: ' + (envio.origen || '') + ' -> ' + (envio.destino || '')
       );
       var link = 'https://wa.me/' + (tel ? '54' + tel : '') + '?text=' + msg;
-      var box = document.createElement('div');
-      box.style.cssText = 'margin-top:16px;text-align:center';
-      box.innerHTML = '<p style="font-size:13px;color:#374151;margin-bottom:10px">📦 Tu pago fue confirmado. Coordiná el retiro por WhatsApp:</p>' +
-        '<a href="' + link + '" target="_blank" style="display:inline-block;background:#25D366;color:#fff;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:700;text-decoration:none">💬 Coordinar retiro por WhatsApp</a>';
-      document.querySelector('.card').appendChild(box);
+      if (autoRedirigir) {
+        var el = document.getElementById('info-envio');
+        var countdown = 4;
+        el.innerHTML = 'Serás redirigido a WhatsApp en <strong>' + countdown + '</strong> segundos...';
+        var interval = setInterval(function() {
+          countdown--;
+          el.innerHTML = 'Serás redirigido a WhatsApp en <strong>' + countdown + '</strong> segundos...';
+          if (countdown <= 0) {
+            clearInterval(interval);
+            window.location = link;
+          }
+        }, 1000);
+      } else {
+        var box = document.createElement('div');
+        box.style.cssText = 'margin-top:16px;text-align:center';
+        box.innerHTML = '<p style="font-size:13px;color:#374151;margin-bottom:10px">📦 Tu pago fue confirmado. Coordiná el retiro por WhatsApp:</p>' +
+          '<a href="' + link + '" target="_blank" style="display:inline-block;background:#25D366;color:#fff;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:700;text-decoration:none">💬 Coordinar retiro por WhatsApp</a>';
+        document.querySelector('.card').appendChild(box);
+      }
     } catch(e) {}
   }
   function rastrear() {
