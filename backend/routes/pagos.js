@@ -57,6 +57,7 @@ router.get('/confirmar/:numero', async (req, res) => {
 router.post('/:slug/crear', async (req, res) => {
   const {
     origen, destino, peso_kg, volumen_m3 = 0,
+    alto_cm, ancho_cm, largo_cm, bultos = 1,
     tipo_servicio = 'estandar', precio_total,
     remitente, destinatario, modalidad, pago,
   } = req.body;
@@ -83,16 +84,17 @@ router.post('/:slug/crear', async (req, res) => {
     // Guardar envío como pendiente_pago ANTES de ir a MP
     const { rows: [envio] } = await db.query(
       `INSERT INTO widget_envios
-         (empresa_id, origen, destino, peso_kg, tipo_servicio, precio_total,
+        (empresa_id, origen, destino, peso_kg, volumen_m3, alto_cm, ancho_cm, largo_cm, bultos, tipo_servicio, precio_total,
           numero_seguimiento, estado, remitente_json, destinatario_json, modalidad, forma_pago)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,'pendiente_pago',$8,$9,$10,$11)
-       RETURNING id`,
-      [empresa.id, origen, destino, peso_kg, tipo_servicio,
-       Math.round(precio_total / 1.21),
-       numero,
-       JSON.stringify(remitente || {}),
-       JSON.stringify(destinatario || {}),
-       modalidad, pago]
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'pendiente_pago',$13,$14,$15,$16)
+      RETURNING id`,
+      [empresa.id, origen, destino, peso_kg, volumen_m3 || 0,
+      alto_cm || null, ancho_cm || null, largo_cm || null, bultos || 1,
+      tipo_servicio, Math.round(precio_total / 1.21),
+      numero,
+      JSON.stringify(remitente || {}),
+      JSON.stringify(destinatario || {}),
+      modalidad, pago]
     );
 
     const baseUrl = process.env.FRONTEND_URL || 'https://transporte-joaquin.onrender.com';
@@ -133,7 +135,8 @@ router.post('/:slug/crear', async (req, res) => {
 // POST /api/pagos/:slug/sucursal — registrar envío para pagar en sucursal (sin MP)
 router.post('/:slug/sucursal', async (req, res) => {
   const {
-    origen, destino, peso_kg,
+    origen, destino, peso_kg, volumen_m3 = 0,
+    alto_cm, ancho_cm, largo_cm, bultos = 1,
     tipo_servicio = 'estandar', precio_total,
     remitente, destinatario, modalidad,
   } = req.body;
@@ -153,15 +156,16 @@ router.post('/:slug/sucursal', async (req, res) => {
 
     await db.query(
       `INSERT INTO widget_envios
-         (empresa_id, origen, destino, peso_kg, tipo_servicio, precio_total,
+        (empresa_id, origen, destino, peso_kg, volumen_m3, alto_cm, ancho_cm, largo_cm, bultos, tipo_servicio, precio_total,
           numero_seguimiento, estado, remitente_json, destinatario_json, modalidad, forma_pago)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,'pendiente_pago',$8,$9,$10,'sucursal')`,
-      [empresa.id, origen, destino, peso_kg, tipo_servicio,
-       Math.round(precio_total / 1.21),
-       numero,
-       JSON.stringify(remitente || {}),
-       JSON.stringify(destinatario || {}),
-       modalidad]
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'pendiente_pago',$13,$14,$15,'sucursal')`,
+      [empresa.id, origen, destino, peso_kg, volumen_m3 || 0,
+      alto_cm || null, ancho_cm || null, largo_cm || null, bultos || 1,
+      tipo_servicio, Math.round(precio_total / 1.21),
+      numero,
+      JSON.stringify(remitente || {}),
+      JSON.stringify(destinatario || {}),
+      modalidad]
     );
 
     res.json({ numero_seguimiento: numero });
