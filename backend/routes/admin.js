@@ -266,7 +266,7 @@ router.patch('/envios/:id/remito', async (req, res) => {
          observaciones_recepcion = COALESCE($6, observaciones_recepcion),
          remito_confirmado_at = NOW(),
          remito_confirmado_por = COALESCE($7, remito_confirmado_por),
-         estado = 'en_sucursal'
+         estado = 'en_deposito_origen'
        WHERE id = $8 AND empresa_id = $9`,
       [peso_real_kg || null, bultos || null, alto_cm || null, ancho_cm || null,
        largo_cm || null, observaciones_recepcion || null, confirmado_por || null,
@@ -274,7 +274,7 @@ router.patch('/envios/:id/remito', async (req, res) => {
     );
     await db.query(
       `INSERT INTO tracking_widget (envio_id, estado, descripcion)
-       VALUES ($1, 'en_sucursal', 'Paquete recibido en sucursal de origen')`,
+       VALUES ($1, 'en_deposito_origen', 'Paquete recibido en depósito de origen')`,
       [req.params.id]
     );
     res.json({ ok: true });

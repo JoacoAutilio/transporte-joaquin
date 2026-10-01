@@ -195,17 +195,25 @@ router.post('/webhook', async (req, res) => {
       const numero = payment.external_reference;
 
       const { rows: [envio] } = await db.query(
-        `UPDATE widget_envios SET estado = 'confirmado', mp_payment_id = $1
+        `UPDATE widget_envios SET estado = CASE
+           WHEN modalidad LIKE 'domicilio%' THEN 'pendiente_retiro'
+           ELSE 'pendiente_entrega_deposito'
+         END, mp_payment_id = $1
          WHERE numero_seguimiento = $2 AND estado = 'pendiente_pago'
-         RETURNING id`,
+         RETURNING id, modalidad`,
         [paymentId, numero]
       );
 
       if (envio) {
+        const esRetiro = envio.modalidad && envio.modalidad.startsWith('domicilio');
+        const estadoTracking = esRetiro ? 'pendiente_retiro' : 'pendiente_entrega_deposito';
+        const descTracking = esRetiro
+          ? 'Pago confirmado. Coordinamos el retiro de tu paquete a la brevedad.'
+          : 'Pago confirmado. Llevá tu paquete al depósito del transporte.';
         await db.query(
           `INSERT INTO tracking_widget (envio_id, estado, descripcion)
-           VALUES ($1, 'confirmado', 'Pago aprobado. Envío confirmado y en preparación.')`,
-          [envio.id]
+          VALUES ($1, $2, $3)`,
+          [envio.id, estadoTracking, descTracking]
         );
         enviarMailConfirmacion(envio.id);
       }
@@ -221,14 +229,22 @@ router.post('/:slug/confirmar-manual', async (req, res) => {
   if (!envio_id) return res.status(400).json({ error: 'envio_id requerido' });
   try {
     const { rows: [envio] } = await db.query(
-      `UPDATE widget_envios SET estado = 'confirmado' WHERE id = $1 RETURNING numero_seguimiento`,
+      `UPDATE widget_envios SET estado = CASE
+        WHEN modalidad LIKE 'domicilio%' THEN 'pendiente_retiro'
+        ELSE 'pendiente_entrega_deposito'
+      END WHERE id = $1 RETURNING numero_seguimiento, modalidad`,
       [envio_id]
-    );
+    );          
     if (!envio) return res.status(404).json({ error: 'Envío no encontrado' });
+    const esRetiroManual = envio.modalidad && envio.modalidad.startsWith('domicilio');
+    const estadoManual = esRetiroManual ? 'pendiente_retiro' : 'pendiente_entrega_deposito';
+    const descManual = esRetiroManual
+      ? 'Pago confirmado. Coordinamos el retiro de tu paquete a la brevedad.'
+      : 'Pago confirmado. Llevá tu paquete al depósito del transporte.';
     await db.query(
       `INSERT INTO tracking_widget (envio_id, estado, descripcion)
-       VALUES ($1, 'confirmado', 'Pago confirmado manualmente por la empresa.')`,
-      [envio_id]
+      VALUES ($1, $2, $3)`,
+      [envio_id, estadoManual, descManual]
     );
     enviarMailConfirmacion(envio_id);
     res.json({ ok: true, numero_seguimiento: envio.numero_seguimiento });
