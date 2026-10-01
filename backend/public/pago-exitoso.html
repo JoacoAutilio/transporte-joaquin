@@ -43,7 +43,7 @@ p{font-size:14px;color:#6b7280;line-height:1.6;margin-bottom:20px}
   async function init() {
     if (numero) {
       await fetch('/api/pagos/confirmar/' + numero).catch(() => {});
-    } cargarWhatsapp();
+    }
     var origenUrl = sessionStorage.getItem('cw_origen_url');
     var el = document.getElementById('info-envio');
     if (origenUrl && numero) {
@@ -59,7 +59,8 @@ p{font-size:14px;color:#6b7280;line-height:1.6;margin-bottom:20px}
         }
       }, 1000);
     } else {
-      el.textContent = 'Envío confirmado y en proceso.';
+            el.textContent = 'Envío confirmado y en proceso.';
+      await cargarWhatsapp();
     }
   }
 
