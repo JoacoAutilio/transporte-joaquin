@@ -244,3 +244,57 @@ router.delete('/envios/:id', async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 module.exports = router;
+// ── REMITO ────────────────────────────────────────────────────
+
+router.patch('/envios/:id/remito', async (req, res) => {
+  const { peso_real_kg, bultos, alto_cm, ancho_cm, largo_cm, observaciones_recepcion, confirmado_por } = req.body;
+  try {
+    const { rows } = await db.query(
+      `SELECT estado FROM widget_envios WHERE id = $1 AND empresa_id = $2`,
+      [req.params.id, req.empresa.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Envío no encontrado' });
+    if (rows[0].estado === 'pendiente_pago') return res.status(400).json({ error: 'El envío no está confirmado' });
+
+    await db.query(
+      `UPDATE widget_envios SET
+         peso_real_kg = COALESCE($1, peso_real_kg),
+         bultos = COALESCE($2, bultos),
+         alto_cm = COALESCE($3, alto_cm),
+         ancho_cm = COALESCE($4, ancho_cm),
+         largo_cm = COALESCE($5, largo_cm),
+         observaciones_recepcion = COALESCE($6, observaciones_recepcion),
+         remito_confirmado_at = NOW(),
+         remito_confirmado_por = COALESCE($7, remito_confirmado_por),
+         estado = 'en_sucursal'
+       WHERE id = $8 AND empresa_id = $9`,
+      [peso_real_kg || null, bultos || null, alto_cm || null, ancho_cm || null,
+       largo_cm || null, observaciones_recepcion || null, confirmado_por || null,
+       req.params.id, req.empresa.id]
+    );
+    await db.query(
+      `INSERT INTO tracking_widget (envio_id, estado, descripcion)
+       VALUES ($1, 'en_sucursal', 'Paquete recibido en sucursal de origen')`,
+      [req.params.id]
+    );
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+router.get('/envios/:id/remito/datos', async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT e.*, emp.nombre AS empresa_nombre, emp.telefono AS empresa_telefono,
+              emp.color_primario, emp.slug
+       FROM widget_envios e
+       JOIN empresas emp ON e.empresa_id = emp.id
+       WHERE e.id = $1 AND e.empresa_id = $2`,
+      [req.params.id, req.empresa.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Envío no encontrado' });
+    const e = rows[0];
+    e.remitente = JSON.parse(e.remitente_json || '{}');
+    e.destinatario = JSON.parse(e.destinatario_json || '{}');
+    res.json(e);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
