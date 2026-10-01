@@ -912,7 +912,7 @@ async function confirmarRemito() {
   closeMo('mo-remito');
   toast('Recepción confirmada');
   loadEnvios();
-  generarPDFRemito(d, body);
+  generarPDFRemito(window._remitoData, body);
 }
 
 async function eliminarEnvio(id, numero) {
@@ -975,7 +975,7 @@ async function generarPDFRemito(envio, recepcion) {
     doc.setFillColor(240,240,240);
     doc.rect(14, offsetY+75, 182, 8, 'F');
     doc.setFont('helvetica','bold'); doc.setFontSize(10);
-    doc.text('Ruta: ' + envio.origen + '  →  ' + envio.destino, 16, offsetY+81);
+    doc.text('Ruta: ' + envio.origen + '  ->  ' + envio.destino, 16, offsetY+81);
 
     // Tabla detalle
     doc.setFontSize(9); doc.setFont('helvetica','bold');
@@ -1040,7 +1040,8 @@ async function generarPDFRemito(envio, recepcion) {
 
   const doc = new jsPDF({ unit:'mm', format:'a4' });
   addCopy(doc, 2);
-  addCopy(doc, 210);
+  doc.addPage();
+  addCopy(doc, 2);
   doc.save('remito-' + (envio.numero_seguimiento||'envio') + '.pdf');
 }
 
