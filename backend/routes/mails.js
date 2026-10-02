@@ -186,7 +186,7 @@ async function enviarMailNuevoEnvio(envioId, { precioConIva = false } = {}) {
 
     const { error } = await getResend().emails.send({
       from: FROM,
-      to: emp.email,
+      to: emp.email_admin,
       subject: `Nuevo envío ${e.numero_seguimiento}: ${e.origen} → ${e.destino}`,
       html: htmlNuevoEnvio(e, emp, rem, dest, total),
     });
