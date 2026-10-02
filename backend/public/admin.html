@@ -355,6 +355,9 @@ tr:last-child td{border-bottom:none}
         </div>
         <div class="form-row"><label>Peso (kg) *</label><input type="number" id="ne-peso" placeholder="0" min="0.1" step="0.1"></div>
         <div class="form-row"><label>Bultos</label><input type="number" id="ne-bultos" placeholder="1" min="1" value="1"></div>
+        <div class="form-row"><label>Largo (cm)</label><input type="number" id="ne-largo" placeholder="opcional" min="0"></div>
+        <div class="form-row"><label>Ancho (cm)</label><input type="number" id="ne-ancho" placeholder="opcional" min="0"></div>
+        <div class="form-row"><label>Alto (cm)</label><input type="number" id="ne-alto" placeholder="opcional" min="0"></div>
         <div class="form-row"><label>Precio total (ARS)</label><input type="number" id="ne-precio" placeholder="Se calcula automático" min="0"></div>
       </div>
       <hr style="border:none;border-top:1px solid var(--bd);margin:14px 0">
@@ -931,6 +934,9 @@ async function guardarNuevoEnvio() {
     forma_pago: document.getElementById('ne-pago').value,
     peso_kg: parseFloat(peso),
     bultos: parseInt(document.getElementById('ne-bultos').value) || 1,
+    largo_cm: parseFloat(document.getElementById('ne-largo').value) || null,
+    ancho_cm: parseFloat(document.getElementById('ne-ancho').value) || null,
+    alto_cm: parseFloat(document.getElementById('ne-alto').value) || null,
     precio_total: parseFloat(document.getElementById('ne-precio').value) || null,
     remitente: { nombre: remNom, apellido: remAp, doc: remDoc, celular: remCel, email: document.getElementById('ne-rem-email').value.trim(), direccion: document.getElementById('ne-rem-dir').value.trim() },
     destinatario: { nombre: destNom, apellido: destAp, doc: destDoc, celular: destCel, email: document.getElementById('ne-dest-email').value.trim(), direccion: document.getElementById('ne-dest-dir').value.trim() }

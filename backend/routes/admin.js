@@ -299,11 +299,12 @@ router.post('/envios/manual', async (req, res) => {
     const { rows: [envio] } = await db.query(
       `INSERT INTO widget_envios
         (empresa_id, numero_seguimiento, origen, destino, modalidad, tipo_servicio, forma_pago,
-        peso_kg, bultos, precio_total, estado, remitente_json, destinatario_json)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id, numero_seguimiento`,
+        peso_kg, bultos, largo_cm, ancho_cm, alto_cm, precio_total, estado, remitente_json, destinatario_json)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id, numero_seguimiento`,
       [req.empresa.id, numero, origen, destino, modalidad || 'deposito_sucursal',
       tipo_servicio || 'estandar', forma_pago || 'origen',
-      peso_kg, bultos || 1, precio || null,
+      peso_kg, bultos || 1, req.body.largo_cm || null, req.body.ancho_cm || null, req.body.alto_cm || null,
+      precio || null,
       forma_pago === 'sucursal' ? 'pendiente_entrega_deposito' : 'pendiente_retiro',
       remJson, destJson]
     );
