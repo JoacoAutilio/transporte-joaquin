@@ -248,6 +248,7 @@
                 '<div class="cw-vol-info" id="cw-vol-info">Volumen: <span id="cw-vol-val">—</span> m³ · Peso volumétrico: <span id="cw-pvol-val">—</span> kg</div>',
                 '<div id="cw-limite-aviso" style="display:none;margin-top:8px;background:#fef2f2;border:1px solid #fecaca;border-radius:7px;padding:8px 12px;font-size:12px;font-weight:600;color:#dc2626">⚠️ Este envío supera los límites de carga. Contactá a la empresa.</div>',
               '</div>',
+              '<div class="cw-row"><label>Valor declarado de la mercadería ($) *</label><input type="number" id="cw-valor-declarado" placeholder="0" min="1" step="1"></div>',
               '<div class="cw-row"><label>Tipo de servicio</label>',
                 '<select id="cw-servicio">',
                   '<option value="estandar">Estándar — 3 a 5 días hábiles</option>',
@@ -355,6 +356,7 @@
           largo: document.getElementById('cw-largo')?.value,
           ancho: document.getElementById('cw-ancho')?.value,
           alto: document.getElementById('cw-alto')?.value,
+          valorDeclarado: document.getElementById('cw-valor-declarado')?.value,
           servicio: document.getElementById('cw-servicio')?.value,
           pago: document.getElementById('cw-pago')?.value,
           remNom: document.getElementById('cw-rem-nom')?.value,
@@ -496,6 +498,8 @@
       if(!ciudOrigen){ showErr('Seleccioná el origen del envío.'); cwGoTo(1); return; }
       if(!ciudDestino){ showErr('Seleccioná el destino del envío.'); cwGoTo(1); return; }
       if(!peso){ showErr('Ingresá el peso del envío.'); cwGoTo(2); return; }
+      var valorDeclarado=parseFloat(document.getElementById('cw-valor-declarado').value)||0;
+      if(!valorDeclarado){ showErr('Ingresá el valor declarado de la mercadería.'); cwGoTo(2); return; }
       if(!remNom||!remDoc||!remCel){ showErr('Completá nombre, DNI/CUIT y celular del remitente.'); cwGoTo(3); return; }
       if(tipoRem==='particular'&&!remAp){ showErr('Ingresá el apellido del remitente.'); cwGoTo(3); return; }
       if(!remCalle||!remNum||!remCP){ showErr('Completá la dirección del remitente (calle, número y CP).'); cwGoTo(3); return; }
@@ -550,7 +554,7 @@
         // Guardar datos para el pago
         window._cwCotizacion = {
           origen:origen,destino:destino,peso_kg:peso,volumen_m3:volM3,
-          tipo_servicio:servicio,precio_total:total,recargo_destino:recargo,modalidad:modalidad,pago:pago,
+          tipo_servicio:servicio,precio_total:total,recargo_destino:recargo,valor_declarado:valorDeclarado,modalidad:modalidad,pago:pago,
           remitente:{tipo:tipoRem,nombre:remNom,apellido:remAp,doc:remDoc,celular:remCel,email:v('cw-rem-email'),calle:remCalle,numero:remNum,entre:remEntre,cp:remCP},
           destinatario:{tipo:tipoDest,nombre:destNom,apellido:destAp,doc:destDoc,celular:destCel,email:v('cw-dest-email'),calle:destCalle,numero:destNum,entre:destEntre,cp:destCP}
         };
@@ -680,6 +684,7 @@
             largo: document.getElementById('cw-largo')?.value,
             ancho: document.getElementById('cw-ancho')?.value,
             alto: document.getElementById('cw-alto')?.value,
+            valorDeclarado: document.getElementById('cw-valor-declarado')?.value,
             servicio: document.getElementById('cw-servicio')?.value,
             pago: document.getElementById('cw-pago')?.value,
             remNom: document.getElementById('cw-rem-nom')?.value,
@@ -940,6 +945,7 @@
     if (c.largo) document.getElementById('cw-largo').value = c.largo;
     if (c.ancho) document.getElementById('cw-ancho').value = c.ancho;
     if (c.alto) document.getElementById('cw-alto').value = c.alto;
+    if (c.valorDeclarado) document.getElementById('cw-valor-declarado').value = c.valorDeclarado;
     cwVol();
     if (c.servicio) document.getElementById('cw-servicio').value = c.servicio;
     if (c.pago) {

@@ -63,3 +63,6 @@ ALTER TABLE empresas ADD COLUMN IF NOT EXISTS limite_largo_cm NUMERIC(8,2);
 ALTER TABLE empresas ADD COLUMN IF NOT EXISTS limite_ancho_cm NUMERIC(8,2);
 ALTER TABLE empresas ADD COLUMN IF NOT EXISTS limite_alto_cm NUMERIC(8,2);
 ALTER TABLE empresas ADD COLUMN IF NOT EXISTS limite_volumen_m3 NUMERIC(10,3);
+
+-- Valor declarado de la mercadería
+ALTER TABLE widget_envios ADD COLUMN IF NOT EXISTS valor_declarado NUMERIC(12,2);

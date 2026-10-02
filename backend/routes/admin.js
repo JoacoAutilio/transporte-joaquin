@@ -268,9 +268,12 @@ router.delete('/envios/:id', async (req, res) => {
 });
 // ── CARGA MANUAL DE ENVÍO ─────────────────────────────────────
 router.post('/envios/manual', async (req, res) => {
-  const { origen, destino, modalidad, tipo_servicio, forma_pago, peso_kg, bultos, precio_total, remitente, destinatario } = req.body;
+  const { origen, destino, modalidad, tipo_servicio, forma_pago, peso_kg, bultos, precio_total, valor_declarado, remitente, destinatario } = req.body;
   if (!origen || !destino || !peso_kg || !remitente || !destinatario) {
     return res.status(400).json({ error: 'Faltan campos obligatorios' });
+  }
+  if (!(parseFloat(valor_declarado) > 0)) {
+    return res.status(400).json({ error: 'Ingresá el valor declarado de la mercadería' });
   }
   try {
     // Generar número de seguimiento
@@ -299,14 +302,15 @@ router.post('/envios/manual', async (req, res) => {
     const { rows: [envio] } = await db.query(
       `INSERT INTO widget_envios
         (empresa_id, numero_seguimiento, origen, destino, modalidad, tipo_servicio, forma_pago,
-        peso_kg, bultos, largo_cm, ancho_cm, alto_cm, precio_total, estado, remitente_json, destinatario_json)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id, numero_seguimiento`,
+        peso_kg, bultos, largo_cm, ancho_cm, alto_cm, precio_total, estado, remitente_json, destinatario_json,
+        valor_declarado)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING id, numero_seguimiento`,
       [req.empresa.id, numero, origen, destino, modalidad || 'deposito_sucursal',
       tipo_servicio || 'estandar', forma_pago || 'origen',
       peso_kg, bultos || 1, req.body.largo_cm || null, req.body.ancho_cm || null, req.body.alto_cm || null,
       precio || null,
       forma_pago === 'sucursal' ? 'pendiente_entrega_deposito' : 'pendiente_retiro',
-      remJson, destJson]
+      remJson, destJson, parseFloat(valor_declarado)]
     );
 
     await db.query(

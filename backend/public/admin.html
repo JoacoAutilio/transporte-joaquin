@@ -358,6 +358,7 @@ tr:last-child td{border-bottom:none}
         <div class="form-row"><label>Largo (cm)</label><input type="number" id="ne-largo" placeholder="opcional" min="0"></div>
         <div class="form-row"><label>Ancho (cm)</label><input type="number" id="ne-ancho" placeholder="opcional" min="0"></div>
         <div class="form-row"><label>Alto (cm)</label><input type="number" id="ne-alto" placeholder="opcional" min="0"></div>
+        <div class="form-row"><label>Valor declarado ($) *</label><input type="number" id="ne-valor-declarado" placeholder="0" min="1" step="1"></div>
         <div class="form-row"><label>Precio total (ARS)</label><input type="number" id="ne-precio" placeholder="Se calcula automático" min="0"></div>
       </div>
       <hr style="border:none;border-top:1px solid var(--bd);margin:14px 0">
@@ -888,7 +889,7 @@ async function abrirNuevoEnvio() {
   // Limpiar campos
   ['ne-rem-nom','ne-rem-ap','ne-rem-doc','ne-rem-cel','ne-rem-email','ne-rem-dir',
    'ne-dest-nom','ne-dest-ap','ne-dest-doc','ne-dest-cel','ne-dest-email','ne-dest-dir',
-   'ne-peso','ne-bultos','ne-precio'].forEach(id => {
+   'ne-peso','ne-bultos','ne-precio','ne-valor-declarado'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = id === 'ne-bultos' ? '1' : '';
   });
@@ -924,6 +925,8 @@ async function guardarNuevoEnvio() {
 
   if (!origen || !destino) { showMsg(msgEl, 'Seleccioná origen y destino.'); return; }
   if (!peso) { showMsg(msgEl, 'Ingresá el peso del envío.'); return; }
+  const valorDeclarado = parseFloat(document.getElementById('ne-valor-declarado').value) || 0;
+  if (!valorDeclarado) { showMsg(msgEl, 'Ingresá el valor declarado de la mercadería.'); return; }
   if (!remNom || !remDoc || !remCel) { showMsg(msgEl, 'Completá nombre, documento y celular del remitente.'); return; }
   if (!destNom || !destDoc || !destCel) { showMsg(msgEl, 'Completá nombre, documento y celular del destinatario.'); return; }
 
@@ -938,6 +941,7 @@ async function guardarNuevoEnvio() {
     ancho_cm: parseFloat(document.getElementById('ne-ancho').value) || null,
     alto_cm: parseFloat(document.getElementById('ne-alto').value) || null,
     precio_total: parseFloat(document.getElementById('ne-precio').value) || null,
+    valor_declarado: valorDeclarado,
     remitente: { nombre: remNom, apellido: remAp, doc: remDoc, celular: remCel, email: document.getElementById('ne-rem-email').value.trim(), direccion: document.getElementById('ne-rem-dir').value.trim() },
     destinatario: { nombre: destNom, apellido: destAp, doc: destDoc, celular: destCel, email: document.getElementById('ne-dest-email').value.trim(), direccion: document.getElementById('ne-dest-dir').value.trim() }
   };
