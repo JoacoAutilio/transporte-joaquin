@@ -10,32 +10,6 @@
   var API_BASE    = scriptTag.getAttribute('data-api') || window.location.origin;
   var containerId = scriptTag.getAttribute('data-container') || 'cotizador-widget';
 
-  var PROVINCIAS = {
-    "Buenos Aires":["AMBA / Gran Buenos Aires","La Plata","Mar del Plata","Bahía Blanca","Tandil","Quilmes","Lomas de Zamora","Lanús","General San Martín","Morón","Tigre","San Isidro","Merlo","Moreno","La Matanza","Almirante Brown","Florencio Varela","Berazategui","Avellaneda","Zárate","Campana","Junín","Pergamino","Necochea","Olavarría"],
-    "CABA":["Ciudad Autónoma de Buenos Aires"],
-    "Córdoba":["Córdoba Capital","Río Cuarto","Villa María","San Francisco","Alta Gracia","Bell Ville","Villa Carlos Paz","Cosquín","Jesús María","Marcos Juárez"],
-    "Santa Fe":["Rosario","Santa Fe Capital","Rafaela","Venado Tuerto","Santo Tomé","Reconquista","Esperanza","Casilda"],
-    "Mendoza":["Mendoza Capital","San Rafael","Godoy Cruz","Luján de Cuyo","Maipú","Rivadavia","Malargüe","Las Heras"],
-    "Tucumán":["San Miguel de Tucumán","Concepción","Banda del Río Salí","Yerba Buena","Aguilares","Monteros"],
-    "Salta":["Salta Capital","San Ramón de la Nueva Orán","Tartagal","Metán","Cafayate","General Güemes"],
-    "Jujuy":["San Salvador de Jujuy","Palpalá","San Pedro de Jujuy","Libertador General San Martín","Humahuaca"],
-    "Misiones":["Posadas","Oberá","Eldorado","Puerto Iguazú","Apóstoles"],
-    "Entre Ríos":["Paraná","Concordia","Gualeguaychú","Concepción del Uruguay","Gualeguay","Villaguay"],
-    "Chaco":["Resistencia","Presidencia Roque Sáenz Peña","Villa Ángela","Charata"],
-    "Corrientes":["Corrientes Capital","Goya","Paso de los Libres","Curuzú Cuatiá","Mercedes"],
-    "Neuquén":["Neuquén Capital","Cutral-Có","Zapala","San Martín de los Andes","Villa La Angostura"],
-    "Río Negro":["Viedma","Bariloche","Cipolletti","General Roca","Allen","El Bolsón"],
-    "San Juan":["San Juan Capital","Rawson","Chimbas","Rivadavia","Santa Lucía"],
-    "San Luis":["San Luis Capital","Villa Mercedes","Merlo"],
-    "La Pampa":["Santa Rosa","General Pico","Toay","Eduardo Castex"],
-    "Formosa":["Formosa Capital","Clorinda","Pirané"],
-    "Catamarca":["San Fernando del Valle de Catamarca","Tinogasta","Andalgalá","Belén"],
-    "La Rioja":["La Rioja Capital","Chilecito","Aimogasta"],
-    "Santiago del Estero":["Santiago del Estero Capital","La Banda","Termas de Río Hondo","Añatuya"],
-    "Chubut":["Rawson","Comodoro Rivadavia","Puerto Madryn","Trelew","Esquel"],
-    "Santa Cruz":["Río Gallegos","Caleta Olivia","Pico Truncado","El Calafate"],
-    "Tierra del Fuego":["Ushuaia","Río Grande","Tolhuin"]
-  };
 
   var ESTADO_LABELS = {confirmado:"Confirmado",en_transito:"En tránsito",en_centro:"En centro de distribución",en_camino:"En camino al destino",entregado:"Entregado",cancelado:"Cancelado",pendiente_pago:"Pendiente de pago",pendiente_retiro:"Pendiente de retiro",pendiente_entrega_deposito:"Pendiente de entrega en depósito",en_deposito_origen:"En depósito de origen"};
     var ESTADO_COLORS = {confirmado:"#3b82f6",en_transito:"#8b5cf6",en_centro:"#06b6d4",en_camino:"#f97316",entregado:"#16a34a",cancelado:"#dc2626",pendiente_pago:"#f59e0b",pendiente_retiro:"#f59e0b",pendiente_entrega_deposito:"#f59e0b",en_deposito_origen:"#06b6d4"};
