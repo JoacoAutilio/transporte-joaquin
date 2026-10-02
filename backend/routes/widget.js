@@ -6,7 +6,8 @@ router.get('/:slug/config', async (req, res) => {
   try {
     const { rows: [empresa] } = await db.query(
       `SELECT id, nombre, slug, color_primario, color_secundario, logo_url, telefono, email,
-              limite_peso_kg, limite_largo_cm, limite_ancho_cm, limite_alto_cm, limite_volumen_m3
+              limite_peso_kg, limite_largo_cm, limite_ancho_cm, limite_alto_cm, limite_volumen_m3,
+              recargo_destino_tipo, recargo_destino_valor
        FROM empresas WHERE slug = $1 AND activo = TRUE`,
       [req.params.slug]
     );

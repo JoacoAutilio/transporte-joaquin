@@ -305,6 +305,17 @@
       '</div>'
     ].join('');
 
+    // ── Opción "Pago en destino" según el recargo configurado por la empresa
+    (function() {
+      var tipo = emp.recargo_destino_tipo || 'ninguno';
+      var valor = parseFloat(emp.recargo_destino_valor) || 0;
+      var opt = document.querySelector('#cw-pago option[value="destino"]');
+      if (!opt) return;
+      if (tipo === 'ninguno') opt.remove();
+      else if (tipo === 'porcentaje') opt.textContent = 'Pago en destino (+' + valor + '%)';
+      else if (tipo === 'monto') opt.textContent = 'Pago en destino (+$' + Math.round(valor).toLocaleString('es-AR') + ')';
+    })();
+
     // Restaurar estado guardado si volvió atrás
     var _saved = JSON.parse(sessionStorage.getItem('cw_estado') || '{}');
     var currentPaso = 1;
@@ -506,7 +517,17 @@
         var data = await r.json();
         if(!r.ok) throw new Error(data.error||'No hay tarifa para esa ruta');
 
-        var sinIVA=data.precio_total;
+        // Recargo por pago en destino (se suma al flete, antes del IVA)
+        var flete=data.precio_total;
+        var recargo=0, recargoLabel='';
+        var empCfg=(window._cwConfig&&window._cwConfig.empresa)||{};
+        var recTipo=empCfg.recargo_destino_tipo, recValor=parseFloat(empCfg.recargo_destino_valor)||0;
+        if(pago==='destino'&&recValor>0){
+          if(recTipo==='porcentaje'){ recargo=Math.round(flete*recValor/100); recargoLabel='Recargo pago en destino ('+recValor+'%)'; }
+          else if(recTipo==='monto'){ recargo=Math.round(recValor); recargoLabel='Recargo pago en destino'; }
+        }
+
+        var sinIVA=flete+recargo;
         var iva=Math.round(sinIVA*0.21);
         var total=Math.round(sinIVA*1.21);
         var fmt=function(n){return '$'+Math.round(n).toLocaleString('es-AR');};
@@ -521,7 +542,7 @@
         // Guardar datos para el pago
         window._cwCotizacion = {
           origen:origen,destino:destino,peso_kg:peso,volumen_m3:volM3,
-          tipo_servicio:servicio,precio_total:total,modalidad:modalidad,pago:pago,
+          tipo_servicio:servicio,precio_total:total,recargo_destino:recargo,modalidad:modalidad,pago:pago,
           remitente:{tipo:tipoRem,nombre:remNom,apellido:remAp,doc:remDoc,celular:remCel,email:v('cw-rem-email'),calle:remCalle,numero:remNum,entre:remEntre,cp:remCP},
           destinatario:{tipo:tipoDest,nombre:destNom,apellido:destAp,doc:destDoc,celular:destCel,email:v('cw-dest-email'),calle:destCalle,numero:destNum,entre:destEntre,cp:destCP}
         };
@@ -532,6 +553,10 @@
             '<div class="cw-runit">ARS · IVA incluido (21%) · <span style="color:#f97316;font-weight:600">⚠️ Precio sujeto a modificación según pesaje real en sucursal</span></div>',
             '<div class="cw-rbadge">⏱ '+data.plazo+'</div>',
             '<div class="cw-rrows">',
+              (recargo>0
+                ? '<div class="cw-rrow"><span>Flete</span><span>'+fmt(flete)+'</span></div>'+
+                  '<div class="cw-rrow"><span>'+recargoLabel+'</span><span>+'+fmt(recargo)+'</span></div>'
+                : ''),
               '<div class="cw-rrow"><span>Precio sin IVA</span><span>'+fmt(sinIVA)+'</span></div>',
               '<div class="cw-rrow"><span>IVA (21%)</span><span>'+fmt(iva)+'</span></div>',
               '<div class="cw-rrow"><span>Peso efectivo</span><span>'+data.peso_efectivo_kg+' kg</span></div>',
@@ -909,7 +934,11 @@
     if (c.alto) document.getElementById('cw-alto').value = c.alto;
     cwVol();
     if (c.servicio) document.getElementById('cw-servicio').value = c.servicio;
-    if (c.pago) document.getElementById('cw-pago').value = c.pago;
+    if (c.pago) {
+      var selPago = document.getElementById('cw-pago');
+      selPago.value = c.pago;
+      if (!selPago.value) selPago.selectedIndex = 0; // la opción guardada ya no está disponible
+    }
     if (c.remNom) document.getElementById('cw-rem-nom').value = c.remNom;
     if (c.remAp) document.getElementById('cw-rem-ap').value = c.remAp;
     if (c.remDoc) document.getElementById('cw-rem-doc').value = c.remDoc;
