@@ -170,6 +170,7 @@
   }
 
   function buildHTML(config) {
+    window._cwConfig = config;
     var emp = config.empresa;
     var c1  = emp.color_primario  || '#E8500A';
     var c2  = emp.color_secundario || '#0B1E3D';
@@ -237,6 +238,7 @@
               '<div class="cw-row"><label>Dimensiones por bulto en cm (opcional)</label>',
                 '<div class="cw-g3"><input type="number" id="cw-largo" placeholder="Largo cm" min="0" oninput="cwVol()"><input type="number" id="cw-ancho" placeholder="Ancho cm" min="0" oninput="cwVol()"><input type="number" id="cw-alto" placeholder="Alto cm" min="0" oninput="cwVol()"></div>',
                 '<div class="cw-vol-info" id="cw-vol-info">Volumen: <span id="cw-vol-val">—</span> m³ · Peso volumétrico: <span id="cw-pvol-val">—</span> kg</div>',
+                '<div id="cw-limite-aviso" style="display:none;margin-top:8px;background:#fef2f2;border:1px solid #fecaca;border-radius:7px;padding:8px 12px;font-size:12px;font-weight:600;color:#dc2626">⚠️ Este envío supera los límites de carga. Contactá a la empresa.</div>',
               '</div>',
               '<div class="cw-row"><label>Tipo de servicio</label>',
                 '<select id="cw-servicio">',
@@ -408,6 +410,20 @@
         document.getElementById('cw-pvol-val').textContent=(vol*250).toFixed(1);
         info.style.display='block';
       } else { info.style.display='none'; }
+
+      // Validar contra los límites de la empresa (null = sin límite)
+      var emp=(window._cwConfig&&window._cwConfig.empresa)||{};
+      var lim=function(k){ var x=parseFloat(emp[k]); return x>0?x:null; };
+      var supera=function(valor,k){ var max=lim(k); return max!==null&&valor>max; };
+      var peso=parseFloat(document.getElementById('cw-peso').value)||0;
+      var excede=supera(peso,'limite_peso_kg')||supera(l,'limite_largo_cm')||
+        supera(a,'limite_ancho_cm')||supera(h,'limite_alto_cm')||
+        (l>0&&a>0&&h>0&&supera(vol,'limite_volumen_m3'));
+      document.getElementById('cw-limite-aviso').style.display=excede?'block':'none';
+      var btnNext=document.querySelector('#cw-paso2 .cw-btn-next');
+      btnNext.disabled=excede;
+      btnNext.style.opacity=excede?'.5':'';
+      btnNext.style.cursor=excede?'not-allowed':'';
     };
 
     // ── Tipo persona
@@ -891,6 +907,7 @@
     if (c.largo) document.getElementById('cw-largo').value = c.largo;
     if (c.ancho) document.getElementById('cw-ancho').value = c.ancho;
     if (c.alto) document.getElementById('cw-alto').value = c.alto;
+    cwVol();
     if (c.servicio) document.getElementById('cw-servicio').value = c.servicio;
     if (c.pago) document.getElementById('cw-pago').value = c.pago;
     if (c.remNom) document.getElementById('cw-rem-nom').value = c.remNom;
