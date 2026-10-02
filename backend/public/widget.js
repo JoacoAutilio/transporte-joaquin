@@ -138,8 +138,18 @@
     document.head.appendChild(s);
   }
 
-  function provOptions() {
-    return Object.keys(PROVINCIAS).map(function(p){ return '<option value="'+p+'">'+p+'</option>'; }).join('');
+  var _cwOrigenes = [];
+  var _cwTarifas = [];
+
+  function buildOrigenOptions() {
+    return _cwOrigenes.map(function(o){ return '<option value="'+o+'">'+o+'</option>'; }).join('');
+  }
+
+  function buildDestinoOptions(origenSeleccionado) {
+    var destinos = _cwTarifas
+      .filter(function(t){ return t.origen === origenSeleccionado; })
+      .map(function(t){ return t.destino; });
+    return destinos.map(function(d){ return '<option value="'+d+'">'+d+'</option>'; }).join('');
   }
 
   function personaFields(pre, titulo, subtitulo) {
@@ -192,7 +202,9 @@
     var c2  = emp.color_secundario || '#0B1E3D';
     injectStyles(c1, c2);
 
-    var po = provOptions();
+    _cwOrigenes = config.origenes || [];
+    _cwTarifas = config.tarifas || [];
+    var po = buildOrigenOptions();
     var container = document.getElementById(containerId);
     if (!container) return;
 
@@ -226,12 +238,8 @@
               '<div class="cw-ctitle">📍 ¿De dónde a dónde?</div>',
               '<div class="cw-csub">Seleccioná el origen y destino del envío</div>',
               '<div class="cw-g2">',
-                '<div class="cw-row"><label>Provincia origen</label><select id="cw-prov-origen" onchange="cwCiudades(\'origen\')"><option value="">— Seleccioná —</option>'+po+'</select></div>',
-                '<div class="cw-row"><label>Ciudad origen</label><select id="cw-ciudad-origen" disabled><option value="">— Primero provincia —</option></select></div>',
-              '</div>',
-              '<div class="cw-g2">',
-                '<div class="cw-row"><label>Provincia destino</label><select id="cw-prov-destino" onchange="cwCiudades(\'destino\')"><option value="">— Seleccioná —</option>'+po+'</select></div>',
-                '<div class="cw-row"><label>Ciudad destino</label><select id="cw-ciudad-destino" disabled><option value="">— Primero provincia —</option></select></div>',
+                '<div class="cw-row"><label>Origen</label><select id="cw-origen" onchange="cwFiltrarDestinos()"><option value="">— Seleccioná origen —</option>'+po+'</select></div>',
+                '<div class="cw-row"><label>Destino</label><select id="cw-destino" disabled><option value="">— Primero elegí origen —</option></select></div>',
               '</div>',
               '<div class="cw-row"><label>Modalidad de envío</label>',
                 '<div class="cw-modal-list">',
@@ -346,10 +354,8 @@
         tipoDest: tipoDest,
         paso: n,
         campos: {
-          provOrigen: document.getElementById('cw-prov-origen')?.value,
-          ciudOrigen: document.getElementById('cw-ciudad-origen')?.value,
-          provDestino: document.getElementById('cw-prov-destino')?.value,
-          ciudDestino: document.getElementById('cw-ciudad-destino')?.value,
+          origen: document.getElementById('cw-origen')?.value,
+          destino: document.getElementById('cw-destino')?.value,
           peso: document.getElementById('cw-peso')?.value,
           bultos: document.getElementById('cw-bultos')?.value,
           largo: document.getElementById('cw-largo')?.value,
@@ -398,15 +404,15 @@
       }
     }
 
-    // ── Ciudades
-    window.cwCiudades = function(tipo) {
-      var prov = document.getElementById('cw-prov-'+tipo).value;
-      var sel  = document.getElementById('cw-ciudad-'+tipo);
-      var cs   = PROVINCIAS[prov] || [];
-      sel.disabled = !cs.length;
-      sel.innerHTML = cs.length
-        ? '<option value="">— Seleccioná ciudad —</option>' + cs.map(function(c){return '<option>'+c+'</option>';}).join('')
-        : '<option>— Primero elegí provincia —</option>';
+    // ── Filtrar destinos según origen
+    window.cwFiltrarDestinos = function() {
+      var origen = document.getElementById('cw-origen').value;
+      var sel = document.getElementById('cw-destino');
+      var opts = buildDestinoOptions(origen);
+      sel.disabled = !opts;
+      sel.innerHTML = opts
+        ? '<option value="">— Seleccioná destino —</option>' + opts
+        : '<option>— No hay destinos disponibles —</option>';
     };
 
     // ── Modalidad
@@ -469,18 +475,18 @@
     window.cwCotizar = async function() {
       document.getElementById('cw-err').style.display='none';
 
-      var provOrigen  = v('cw-prov-origen');
-      var ciudOrigen  = v('cw-ciudad-origen');
-      var provDestino = v('cw-prov-destino');
-      var ciudDestino = v('cw-ciudad-destino');
+      var provOrigen  = '';
+      var ciudOrigen  = v('cw-origen');
+      var provDestino = '';
+      var ciudDestino = v('cw-destino');
       var peso        = parseFloat(document.getElementById('cw-peso').value)||0;
       var remNom=v('cw-rem-nom'), remAp=v('cw-rem-ap'), remDoc=v('cw-rem-doc'), remCel=v('cw-rem-cel');
       var remCalle=v('cw-rem-calle'), remNum=v('cw-rem-num'), remCP=v('cw-rem-cp'), remEntre=v('cw-rem-entre');
       var destNom=v('cw-dest-nom'), destAp=v('cw-dest-ap'), destDoc=v('cw-dest-doc'), destCel=v('cw-dest-cel');
       var destCalle=v('cw-dest-calle'), destNum=v('cw-dest-num'), destCP=v('cw-dest-cp'), destEntre=v('cw-dest-entre');
 
-      if(!provOrigen||!ciudOrigen){ showErr('Seleccioná provincia y ciudad de origen.'); cwGoTo(1); return; }
-      if(!provDestino||!ciudDestino){ showErr('Seleccioná provincia y ciudad de destino.'); cwGoTo(1); return; }
+      if(!ciudOrigen){ showErr('Seleccioná el origen del envío.'); cwGoTo(1); return; }
+      if(!ciudDestino){ showErr('Seleccioná el destino del envío.'); cwGoTo(1); return; }
       if(!peso){ showErr('Ingresá el peso del envío.'); cwGoTo(2); return; }
       if(!remNom||!remDoc||!remCel){ showErr('Completá nombre, DNI/CUIT y celular del remitente.'); cwGoTo(3); return; }
       if(tipoRem==='particular'&&!remAp){ showErr('Ingresá el apellido del remitente.'); cwGoTo(3); return; }
@@ -496,8 +502,8 @@
       var volM3=largo>0&&ancho>0&&alto>0?(largo*ancho*alto/1000000)*bultos:0;
       var servicio=v('cw-servicio');
       var pago=v('cw-pago');
-      var origen=ciudOrigen+' ('+provOrigen+')';
-      var destino=ciudDestino+' ('+provDestino+')';
+      var origen=ciudOrigen;
+      var destino=ciudDestino;
 
       // Llamar a la API
       var btnNext = document.querySelector('#cw-paso4 .cw-btn-next');
@@ -645,10 +651,8 @@
           tipoDest: tipoDest,
           paso: 5,
           campos: {
-            provOrigen: document.getElementById('cw-prov-origen')?.value,
-            ciudOrigen: document.getElementById('cw-ciudad-origen')?.value,
-            provDestino: document.getElementById('cw-prov-destino')?.value,
-            ciudDestino: document.getElementById('cw-ciudad-destino')?.value,
+            origen: document.getElementById('cw-origen')?.value,
+            destino: document.getElementById('cw-destino')?.value,
             peso: document.getElementById('cw-peso')?.value,
             bultos: document.getElementById('cw-bultos')?.value,
             largo: document.getElementById('cw-largo')?.value,
@@ -908,8 +912,7 @@
     function restoreEstado(savedState) {
     var c = savedState.campos;
     if (!c) return;
-    if (c.provOrigen) { document.getElementById('cw-prov-origen').value = c.provOrigen; cwCiudades('origen'); setTimeout(function(){ if(c.ciudOrigen) document.getElementById('cw-ciudad-origen').value = c.ciudOrigen; }, 100); }
-    if (c.provDestino) { document.getElementById('cw-prov-destino').value = c.provDestino; cwCiudades('destino'); setTimeout(function(){ if(c.ciudDestino) document.getElementById('cw-ciudad-destino').value = c.ciudDestino; }, 100); }
+    if (c.origen) { document.getElementById('cw-origen').value = c.origen; cwFiltrarDestinos(); setTimeout(function(){ if(c.destino) document.getElementById('cw-destino').value = c.destino; }, 100); }
     if (c.peso) document.getElementById('cw-peso').value = c.peso;
     if (c.bultos) document.getElementById('cw-bultos').value = c.bultos;
     if (c.largo) document.getElementById('cw-largo').value = c.largo;
