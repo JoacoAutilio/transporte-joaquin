@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const { MercadoPagoConfig, Preference } = require('mercadopago');
 const db = require('../db');
-const { enviarMailConfirmacion } = require('./mails');
+const { enviarMailConfirmacion, enviarMailNuevoEnvio } = require('./mails');
 
 // Cada empresa tiene su propio Access Token de MP
 // Por ahora usamos el de la plataforma, después cada empresa configura el suyo
@@ -120,6 +120,7 @@ router.post('/:slug/crear', async (req, res) => {
       }
     });
 
+    enviarMailNuevoEnvio(envio.id);
     res.json({
       preference_id: result.id,
       init_point: result.init_point,
@@ -154,11 +155,12 @@ router.post('/:slug/sucursal', async (req, res) => {
 
     const numero = `TJ-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
 
-    await db.query(
+    const { rows: [envio] } = await db.query(
       `INSERT INTO widget_envios
         (empresa_id, origen, destino, peso_kg, volumen_m3, alto_cm, ancho_cm, largo_cm, bultos, tipo_servicio, precio_total,
           numero_seguimiento, estado, remitente_json, destinatario_json, modalidad, forma_pago, valor_declarado)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'pendiente_pago',$13,$14,$15,'sucursal',$16)`,
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'pendiente_pago',$13,$14,$15,'sucursal',$16)
+      RETURNING id`,
       [empresa.id, origen, destino, peso_kg, volumen_m3 || 0,
       alto_cm || null, ancho_cm || null, largo_cm || null, bultos || 1,
       tipo_servicio, Math.round(precio_total / 1.21),
@@ -168,6 +170,7 @@ router.post('/:slug/sucursal', async (req, res) => {
       modalidad, req.body.valor_declarado ?? null]
     );
 
+    enviarMailNuevoEnvio(envio.id);
     res.json({ numero_seguimiento: numero });
   } catch (e) {
     console.error('Sucursal error:', e);

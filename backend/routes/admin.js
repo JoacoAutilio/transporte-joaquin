@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const db = require('../db');
 const { authMiddleware } = require('../middleware/auth');
+const { enviarMailNuevoEnvio } = require('./mails');
 
 // Todas las rutas del panel admin requieren JWT válido
 router.use(authMiddleware);
@@ -318,6 +319,8 @@ router.post('/envios/manual', async (req, res) => {
       [envio.id, 'pendiente_retiro', 'Envío registrado manualmente por la empresa']
     );
 
+    // Los envíos manuales guardan precio_total con IVA
+    enviarMailNuevoEnvio(envio.id, { precioConIva: true });
     res.status(201).json({ ok: true, numero_seguimiento: envio.numero_seguimiento });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });

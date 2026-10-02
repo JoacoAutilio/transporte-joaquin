@@ -131,6 +131,71 @@ const htmlEmpleado = (e, emp, rem, dest, total) => layout(emp.nombre, 'Nuevo env
     fila('Dirección', direccion(dest)),
   ])}`);
 
+const ESTADOS = {
+  pendiente_pago: 'Pendiente de pago',
+  pendiente_retiro: 'Pendiente de retiro',
+  pendiente_entrega_deposito: 'Pendiente de entrega en depósito',
+  confirmado: 'Confirmado',
+};
+
+const htmlNuevoEnvio = (e, emp, rem, dest, total) => layout(emp.nombre, 'Nuevo envío registrado', `
+  ${codigoBox(e.numero_seguimiento)}
+  ${seccion('Envío', [
+    fila('Estado', ESTADOS[e.estado] || e.estado),
+    fila('Origen', e.origen),
+    fila('Destino', e.destino),
+    fila('Remitente', nombrePersona(rem)),
+    fila('Destinatario', nombrePersona(dest)),
+    fila('Peso', e.peso_kg != null ? `${Number(e.peso_kg)} kg` : ''),
+    fila('Valor declarado', e.valor_declarado != null ? fmt(e.valor_declarado) : ''),
+    fila('Modalidad', MODALIDADES[e.modalidad] || e.modalidad),
+    fila('Forma de pago', PAGOS[e.forma_pago] || e.forma_pago),
+  ])}
+  <div style="margin-top:20px;padding:16px;border:2px solid ${NARANJA};border-radius:10px;text-align:center">
+    <div style="color:#6b7280;font-size:13px">Precio total (IVA incluido)</div>
+    <div style="color:${NARANJA};font-size:28px;font-weight:800;margin-top:4px">${e.precio_total != null ? fmt(total) : '—'}</div>
+  </div>`);
+
+// Aviso a la empresa cuando se crea un envío (widget o carga manual).
+// precioConIva: los envíos manuales guardan precio_total con IVA; los del widget, sin IVA.
+// Nunca lanza: un error de mail no debe romper la creación del envío
+async function enviarMailNuevoEnvio(envioId, { precioConIva = false } = {}) {
+  try {
+    if (!process.env.RESEND_API_KEY) {
+      console.warn('RESEND_API_KEY no configurada, no se envían mails');
+      return;
+    }
+
+    const { rows: [e] } = await db.query(
+      `SELECT empresa_id, remitente_json, destinatario_json, origen, destino, peso_kg, valor_declarado,
+              precio_total, numero_seguimiento, forma_pago, modalidad, estado
+       FROM widget_envios WHERE id = $1`,
+      [envioId]
+    );
+    if (!e) return console.warn(`Mail: envío ${envioId} no encontrado`);
+
+    const { rows: [emp] } = await db.query(
+      'SELECT nombre, email_admin AS email FROM empresas WHERE id = $1',
+      [e.empresa_id]
+    );
+    if (!emp?.email) return; // la empresa no tiene email cargado
+
+    const rem = parseJSON(e.remitente_json);
+    const dest = parseJSON(e.destinatario_json);
+    const total = precioConIva ? Number(e.precio_total) : Math.round(Number(e.precio_total) * 1.21);
+
+    const { error } = await getResend().emails.send({
+      from: FROM,
+      to: emp.email,
+      subject: `Nuevo envío ${e.numero_seguimiento}: ${e.origen} → ${e.destino}`,
+      html: htmlNuevoEnvio(e, emp, rem, dest, total),
+    });
+    if (error) console.error('Resend error:', error);
+  } catch (err) {
+    console.error('Error enviando mail de nuevo envío:', err);
+  }
+}
+
 // Nunca lanza: un error de mail no debe romper la confirmación del pago
 async function enviarMailConfirmacion(envioId) {
   try {
@@ -186,4 +251,4 @@ async function enviarMailConfirmacion(envioId) {
   }
 }
 
-module.exports = { enviarMailConfirmacion };
+module.exports = { enviarMailConfirmacion, enviarMailNuevoEnvio };
