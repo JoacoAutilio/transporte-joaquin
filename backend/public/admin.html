@@ -248,6 +248,7 @@ tr:last-child td{border-bottom:none}
               <div class="form-row"><label>Nombre de la empresa</label><input id="cfg-nombre" placeholder="Ej: Transporte Juan"></div>
               <div class="form-row"><label>CUIT</label><input id="cfg-cuit" placeholder="30-12345678-9"></div>
               <div class="form-row"><label>Teléfono de contacto</label><input id="cfg-tel" placeholder="0800-000-0000"></div>
+              <div class="form-row"><label>Email de notificaciones</label><input id="cfg-email" type="email" placeholder="admin@miempresa.com"><div style="font-size:11px;color:var(--mt);margin-top:3px">A este email llegan los avisos de nuevos envíos.</div></div>
               <div class="form-row"><label>Prefijo de código</label><input id="cfg-prefijo" placeholder="Ej: TC" maxlength="6"><div style="font-size:11px;color:var(--mt);margin-top:3px">Ej: TC → TC-2026-000001</div></div>
               <div class="form-row"><label>Dirección de la empresa</label><input id="cfg-direccion" placeholder="Av. San Martín 1234, Neuquén"></div>
               <div class="form-row"><label>Dirección del depósito</label><input id="cfg-deposito" placeholder="Ruta 22 Km 5, Neuquén"></div>
@@ -1316,6 +1317,7 @@ async function loadConfig() {
   document.getElementById('cfg-prefijo').value   = d.codigo_prefijo || '';
   document.getElementById('cfg-color').value     = d.color_primario || '#E8500A';
   document.getElementById('cfg-color-pick').value= d.color_primario || '#E8500A';
+  document.getElementById('cfg-email').value     = d.email_admin || '';
   document.getElementById('cfg-recargo-tipo').value = d.recargo_destino_tipo || 'ninguno';
   document.getElementById('cfg-recargo-valor').value = d.recargo_destino_valor || '';
   toggleRecargoValor();
@@ -1367,6 +1369,7 @@ async function guardarConfig() {
     nombre,
     telefono: tel || null,
     color_primario: color || null,
+    email_admin: document.getElementById('cfg-email').value.trim() || null,
     direccion: document.getElementById('cfg-direccion').value.trim() || null,
     cuit: document.getElementById('cfg-cuit').value.trim() || null,
     direccion_deposito: document.getElementById('cfg-deposito').value.trim() || null,
