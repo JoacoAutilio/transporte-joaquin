@@ -330,8 +330,8 @@ tr:last-child td{border-bottom:none}
     <div class="mo-hdr"><h3>+ Nuevo envío manual</h3><button class="mo-close" onclick="closeMo('mo-nuevo-envio')">✕</button></div>
     <div class="mo-body">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div class="form-row"><label>Origen *</label><select id="ne-origen" onchange="neCargarDestinos()"><option value="">— Seleccioná —</option></select></div>
-        <div class="form-row"><label>Destino *</label><select id="ne-destino" disabled><option value="">— Primero elegí origen —</option></select></div>
+        <div class="form-row"><label>Origen *</label><select id="ne-origen" onchange="neCargarDestinos(); neCalcularPrecio()"><option value="">— Seleccioná —</option></select></div>
+        <div class="form-row"><label>Destino *</label><select id="ne-destino" disabled onchange="neCalcularPrecio()"><option value="">— Primero elegí origen —</option></select></div>
         <div class="form-row"><label>Modalidad *</label>
           <select id="ne-modalidad">
             <option value="deposito_sucursal">Depósito → Sucursal</option>
@@ -347,13 +347,13 @@ tr:last-child td{border-bottom:none}
           </select>
         </div>
         <div class="form-row"><label>Tipo de servicio</label>
-          <select id="ne-servicio">
+          <select id="ne-servicio" onchange="neCalcularPrecio()">
             <option value="estandar">Estándar</option>
             <option value="express">Express 48hs</option>
             <option value="consolidado">Consolidado</option>
           </select>
         </div>
-        <div class="form-row"><label>Peso (kg) *</label><input type="number" id="ne-peso" placeholder="0" min="0.1" step="0.1"></div>
+        <div class="form-row"><label>Peso (kg) *</label><input type="number" id="ne-peso" placeholder="0" min="0.1" step="0.1" onchange="neCalcularPrecio()"></div>
         <div class="form-row"><label>Bultos</label><input type="number" id="ne-bultos" placeholder="1" min="1" value="1"></div>
         <div class="form-row"><label>Largo (cm)</label><input type="number" id="ne-largo" placeholder="opcional" min="0"></div>
         <div class="form-row"><label>Ancho (cm)</label><input type="number" id="ne-ancho" placeholder="opcional" min="0"></div>
@@ -905,6 +905,35 @@ function neCargarDestinos() {
   sel.innerHTML = destinos.length
     ? '<option value="">— Seleccioná destino —</option>' + destinos.map(d => `<option value="${d}">${d}</option>`).join('')
     : '<option>— No hay destinos disponibles —</option>';
+}
+
+// Autocompletar el precio con la tarifa de la empresa
+let _neCalcSeq = 0;
+async function neCalcularPrecio() {
+  const precioEl = document.getElementById('ne-precio');
+  const origen  = document.getElementById('ne-origen').value;
+  const destino = document.getElementById('ne-destino').value;
+  const peso    = parseFloat(document.getElementById('ne-peso').value) || 0;
+  const slug    = window._empresaSlug || EMPRESA?.slug;
+  const seq = ++_neCalcSeq; // ignorar respuestas viejas si el usuario cambia rápido
+  if (!origen || !destino || !peso || !slug) { precioEl.value = ''; return; }
+
+  try {
+    const r = await fetch(`${API}/api/widget/${slug}/cotizar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        origen, destino, peso_kg: peso,
+        tipo_servicio: document.getElementById('ne-servicio').value || 'estandar'
+      })
+    });
+    const d = await r.json();
+    if (seq !== _neCalcSeq) return;
+    // La API devuelve el precio sin IVA; el campo es el total con IVA
+    precioEl.value = r.ok && d.precio_total ? Math.round(d.precio_total * 1.21) : '';
+  } catch (e) {
+    if (seq === _neCalcSeq) precioEl.value = '';
+  }
 }
 
 async function guardarNuevoEnvio() {
