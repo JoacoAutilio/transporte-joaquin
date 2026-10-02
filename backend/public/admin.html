@@ -33,7 +33,9 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx
 .topbar{background:#fff;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
 .topbar h1{font-size:18px;font-weight:800;color:var(--navy)}
 .topbar p{font-size:13px;color:var(--mt);margin-top:1px}
-.content{flex:1;padding:22px;overflow-y:auto}
+.content{flex:1;padding:22px;overflow-y:auto;min-width:0}
+.cfg-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:4px}
+.cfg-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
 .pg{display:none}.pg.on{display:block}
 
 /* CARDS */
@@ -242,20 +244,18 @@ tr:last-child td{border-bottom:none}
           <div style="padding:20px">
 
             <div style="font-size:12px;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">🏢 Datos de la empresa</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:4px">
+            <div class="cfg-grid-2">
               <div class="form-row"><label>Nombre de la empresa</label><input id="cfg-nombre" placeholder="Ej: Transporte Juan"></div>
               <div class="form-row"><label>CUIT</label><input id="cfg-cuit" placeholder="30-12345678-9"></div>
               <div class="form-row"><label>Teléfono de contacto</label><input id="cfg-tel" placeholder="0800-000-0000"></div>
               <div class="form-row"><label>Prefijo de código</label><input id="cfg-prefijo" placeholder="Ej: TC" maxlength="6"><div style="font-size:11px;color:var(--mt);margin-top:3px">Ej: TC → TC-2026-000001</div></div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:4px">
               <div class="form-row"><label>Dirección de la empresa</label><input id="cfg-direccion" placeholder="Av. San Martín 1234, Neuquén"></div>
               <div class="form-row"><label>Dirección del depósito</label><input id="cfg-deposito" placeholder="Ruta 22 Km 5, Neuquén"></div>
             </div>
 
             <hr style="border:none;border-top:1px solid var(--bd);margin:20px 0">
             <div style="font-size:12px;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">💰 Recargo por pago en destino</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="cfg-grid-2">
               <div class="form-row"><label>Tipo de recargo</label>
                 <select id="cfg-recargo-tipo" onchange="toggleRecargoValor()">
                   <option value="ninguno">No disponible</option>
