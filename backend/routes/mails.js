@@ -1,7 +1,7 @@
 const { Resend } = require('resend');
 const db = require('../db');
 
-const FROM = 'onboarding@resend.dev';
+const FROM = process.env.MAIL_FROM || 'onboarding@resend.dev';
 const NARANJA = '#E8500A';
 const AZUL = '#0B1E3D';
 
