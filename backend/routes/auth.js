@@ -66,8 +66,11 @@ router.get('/me', authMiddleware, async (req, res) => {
   try {
     const { rows: [emp] } = await db.query(
       `SELECT id, slug, nombre, email_admin, color_primario, color_secundario,
-              telefono, logo_url, ultimo_login
-       FROM empresas WHERE id = $1`,
+              telefono, logo_url, ultimo_login,
+              direccion, cuit, direccion_deposito, codigo_prefijo,
+              recargo_destino_tipo, recargo_destino_valor,
+              limite_peso_kg, limite_largo_cm, limite_ancho_cm, limite_alto_cm, limite_volumen_m3
+      FROM empresas WHERE id = $1`,
       [req.empresa.id]
     );
     res.json(emp);

@@ -49,3 +49,16 @@ ALTER TABLE widget_envios ADD COLUMN IF NOT EXISTS precio_ajustado NUMERIC(12,2)
 ALTER TABLE widget_envios ADD COLUMN IF NOT EXISTS observaciones_recepcion TEXT;
 ALTER TABLE widget_envios ADD COLUMN IF NOT EXISTS remito_confirmado_at TIMESTAMP;
 ALTER TABLE widget_envios ADD COLUMN IF NOT EXISTS remito_confirmado_por VARCHAR(100);
+
+-- Campos de configuración de empresa
+ALTER TABLE empresas ADD COLUMN IF NOT EXISTS direccion TEXT;
+ALTER TABLE empresas ADD COLUMN IF NOT EXISTS cuit VARCHAR(20);
+ALTER TABLE empresas ADD COLUMN IF NOT EXISTS direccion_deposito TEXT;
+ALTER TABLE empresas ADD COLUMN IF NOT EXISTS codigo_prefijo VARCHAR(10) DEFAULT 'ENV';
+ALTER TABLE empresas ADD COLUMN IF NOT EXISTS recargo_destino_tipo VARCHAR(20) DEFAULT 'ninguno';
+ALTER TABLE empresas ADD COLUMN IF NOT EXISTS recargo_destino_valor NUMERIC(8,2) DEFAULT 0;
+ALTER TABLE empresas ADD COLUMN IF NOT EXISTS limite_peso_kg NUMERIC(10,2);
+ALTER TABLE empresas ADD COLUMN IF NOT EXISTS limite_largo_cm NUMERIC(8,2);
+ALTER TABLE empresas ADD COLUMN IF NOT EXISTS limite_ancho_cm NUMERIC(8,2);
+ALTER TABLE empresas ADD COLUMN IF NOT EXISTS limite_alto_cm NUMERIC(8,2);
+ALTER TABLE empresas ADD COLUMN IF NOT EXISTS limite_volumen_m3 NUMERIC(10,3);

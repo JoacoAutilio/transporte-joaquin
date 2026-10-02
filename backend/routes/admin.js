@@ -186,16 +186,39 @@ router.patch('/envios/:id/estado', async (req, res) => {
 // ── CONFIGURACIÓN ─────────────────────────────────────────────
 
 router.put('/configuracion', async (req, res) => {
-  const { nombre, telefono, color_primario, mp_access_token } = req.body;
+  const {
+    nombre, telefono, color_primario, mp_access_token,
+    direccion, cuit, direccion_deposito, codigo_prefijo,
+    recargo_destino_tipo, recargo_destino_valor,
+    limite_peso_kg, limite_largo_cm, limite_ancho_cm, limite_alto_cm, limite_volumen_m3
+  } = req.body;
   try {
     await db.query(
       `UPDATE empresas SET
          nombre = COALESCE($1, nombre),
          telefono = COALESCE($2, telefono),
          color_primario = COALESCE($3, color_primario),
-         mp_access_token = COALESCE($4, mp_access_token)
-       WHERE id = $5`,
-      [nombre || null, telefono || null, color_primario || null, mp_access_token || null, req.empresa.id]
+         mp_access_token = COALESCE($4, mp_access_token),
+         direccion = COALESCE($5, direccion),
+         cuit = COALESCE($6, cuit),
+         direccion_deposito = COALESCE($7, direccion_deposito),
+         codigo_prefijo = COALESCE($8, codigo_prefijo),
+         recargo_destino_tipo = COALESCE($9, recargo_destino_tipo),
+         recargo_destino_valor = COALESCE($10, recargo_destino_valor),
+         limite_peso_kg = $11,
+         limite_largo_cm = $12,
+         limite_ancho_cm = $13,
+         limite_alto_cm = $14,
+         limite_volumen_m3 = $15
+       WHERE id = $16`,
+      [
+        nombre || null, telefono || null, color_primario || null, mp_access_token || null,
+        direccion || null, cuit || null, direccion_deposito || null, codigo_prefijo || null,
+        recargo_destino_tipo || null, recargo_destino_valor || null,
+        limite_peso_kg || null, limite_largo_cm || null, limite_ancho_cm || null,
+        limite_alto_cm || null, limite_volumen_m3 || null,
+        req.empresa.id
+      ]
     );
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }

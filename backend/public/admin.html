@@ -245,8 +245,52 @@ tr:last-child td{border-bottom:none}
               <input id="cfg-nombre" placeholder="Ej: Transporte Juan">
             </div>
             <div class="form-row">
+              <label>CUIT</label>
+              <input id="cfg-cuit" placeholder="30-12345678-9">
+            </div>
+            <div class="form-row">
               <label>Teléfono de contacto</label>
               <input id="cfg-tel" placeholder="0800-000-0000">
+            </div>
+            <div class="form-row">
+              <label>Dirección de la empresa</label>
+              <input id="cfg-direccion" placeholder="Av. San Martín 1234, Neuquén">
+            </div>
+            <div class="form-row">
+              <label>Dirección del depósito</label>
+              <input id="cfg-deposito" placeholder="Ruta 22 Km 5, Neuquén">
+            </div>
+            <div class="form-row">
+              <label>Prefijo de código de seguimiento</label>
+              <input id="cfg-prefijo" placeholder="Ej: TC" maxlength="6">
+              <div style="font-size:11px;color:var(--mt);margin-top:4px">Los códigos se generarán como TC-2026-000001</div>
+            </div>
+
+            <hr style="border:none;border-top:1px solid var(--bd);margin:20px 0">
+            <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:12px">💰 Recargo por pago en destino</div>
+            <div class="form-row">
+              <label>Tipo de recargo</label>
+              <select id="cfg-recargo-tipo">
+                <option value="ninguno">No disponible</option>
+                <option value="sin_recargo">Disponible sin recargo</option>
+                <option value="porcentaje">Recargo en porcentaje (%)</option>
+                <option value="monto">Recargo en monto fijo ($)</option>
+              </select>
+            </div>
+            <div class="form-row" id="cfg-recargo-valor-row" style="display:none">
+              <label id="cfg-recargo-valor-lbl">Valor del recargo</label>
+              <input type="number" id="cfg-recargo-valor" placeholder="0" min="0" step="0.01">
+            </div>
+
+            <hr style="border:none;border-top:1px solid var(--bd);margin:20px 0">
+            <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:12px">📦 Límites de carga</div>
+            <div style="font-size:12px;color:var(--mt);margin-bottom:12px">Si el envío supera estos límites, el widget le avisará al cliente que contacte a la empresa. Dejá en blanco para sin límite.</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div class="form-row"><label>Peso máximo (kg)</label><input type="number" id="cfg-lim-peso" placeholder="Sin límite" min="0"></div>
+              <div class="form-row"><label>Volumen máximo (m³)</label><input type="number" id="cfg-lim-vol" placeholder="Sin límite" min="0" step="0.01"></div>
+              <div class="form-row"><label>Largo máximo (cm)</label><input type="number" id="cfg-lim-largo" placeholder="Sin límite" min="0"></div>
+              <div class="form-row"><label>Ancho máximo (cm)</label><input type="number" id="cfg-lim-ancho" placeholder="Sin límite" min="0"></div>
+              <div class="form-row"><label>Alto máximo (cm)</label><input type="number" id="cfg-lim-alto" placeholder="Sin límite" min="0"></div>
             </div>
             <div class="form-row">
               <label>Color principal (hex)</label>
@@ -1084,9 +1128,36 @@ async function loadConfig() {
   if (!r) return;
   const d = await r.json();
   document.getElementById('cfg-nombre').value    = d.nombre || '';
+  document.getElementById('cfg-cuit').value      = d.cuit || '';
   document.getElementById('cfg-tel').value       = d.telefono || '';
+  document.getElementById('cfg-direccion').value = d.direccion || '';
+  document.getElementById('cfg-deposito').value  = d.direccion_deposito || '';
+  document.getElementById('cfg-prefijo').value   = d.codigo_prefijo || '';
   document.getElementById('cfg-color').value     = d.color_primario || '#E8500A';
   document.getElementById('cfg-color-pick').value= d.color_primario || '#E8500A';
+  document.getElementById('cfg-recargo-tipo').value = d.recargo_destino_tipo || 'ninguno';
+  document.getElementById('cfg-recargo-valor').value = d.recargo_destino_valor || '';
+  toggleRecargoValor();
+  document.getElementById('cfg-lim-peso').value  = d.limite_peso_kg || '';
+  document.getElementById('cfg-lim-vol').value   = d.limite_volumen_m3 || '';
+  document.getElementById('cfg-lim-largo').value = d.limite_largo_cm || '';
+  document.getElementById('cfg-lim-ancho').value = d.limite_ancho_cm || '';
+  document.getElementById('cfg-lim-alto').value  = d.limite_alto_cm || '';
+}
+
+function toggleRecargoValor() {
+  const tipo = document.getElementById('cfg-recargo-tipo').value;
+  const row = document.getElementById('cfg-recargo-valor-row');
+  const lbl = document.getElementById('cfg-recargo-valor-lbl');
+  if (tipo === 'porcentaje') {
+    row.style.display = 'block';
+    lbl.textContent = 'Porcentaje de recargo (%)';
+  } else if (tipo === 'monto') {
+    row.style.display = 'block';
+    lbl.textContent = 'Monto fijo de recargo ($)';
+  } else {
+    row.style.display = 'none';
+  }
 }
 
 async function guardarConfig() {
@@ -1111,7 +1182,22 @@ async function guardarConfig() {
     msgEl.style.display = 'block'; return;
   }
 
-  const body = { nombre, telefono: tel || null, color_primario: color || null };
+  const body = {
+    nombre,
+    telefono: tel || null,
+    color_primario: color || null,
+    direccion: document.getElementById('cfg-direccion').value.trim() || null,
+    cuit: document.getElementById('cfg-cuit').value.trim() || null,
+    direccion_deposito: document.getElementById('cfg-deposito').value.trim() || null,
+    codigo_prefijo: document.getElementById('cfg-prefijo').value.trim() || null,
+    recargo_destino_tipo: document.getElementById('cfg-recargo-tipo').value || null,
+    recargo_destino_valor: document.getElementById('cfg-recargo-valor').value || null,
+    limite_peso_kg: document.getElementById('cfg-lim-peso').value || null,
+    limite_largo_cm: document.getElementById('cfg-lim-largo').value || null,
+    limite_ancho_cm: document.getElementById('cfg-lim-ancho').value || null,
+    limite_alto_cm: document.getElementById('cfg-lim-alto').value || null,
+    limite_volumen_m3: document.getElementById('cfg-lim-vol').value || null,
+  };
   if (mpToken) body.mp_access_token = mpToken;
 
   const r = await api('/api/admin/configuracion', 'PUT', body);
