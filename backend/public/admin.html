@@ -270,7 +270,7 @@ tr:last-child td{border-bottom:none}
             <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:12px">💰 Recargo por pago en destino</div>
             <div class="form-row">
               <label>Tipo de recargo</label>
-              <select id="cfg-recargo-tipo">
+              <select id="cfg-recargo-tipo" onchange="toggleRecargoValor()">
                 <option value="ninguno">No disponible</option>
                 <option value="sin_recargo">Disponible sin recargo</option>
                 <option value="porcentaje">Recargo en porcentaje (%)</option>
