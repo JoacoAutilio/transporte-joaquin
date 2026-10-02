@@ -266,6 +266,57 @@ router.delete('/envios/:id', async (req, res) => {
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
+// ── CARGA MANUAL DE ENVÍO ─────────────────────────────────────
+router.post('/envios/manual', async (req, res) => {
+  const { origen, destino, modalidad, tipo_servicio, forma_pago, peso_kg, bultos, precio_total, remitente, destinatario } = req.body;
+  if (!origen || !destino || !peso_kg || !remitente || !destinatario) {
+    return res.status(400).json({ error: 'Faltan campos obligatorios' });
+  }
+  try {
+    // Generar número de seguimiento
+    const { rows: [emp] } = await db.query('SELECT codigo_prefijo FROM empresas WHERE id=$1', [req.empresa.id]);
+    const prefijo = emp.codigo_prefijo || 'ENV';
+    const año = new Date().getFullYear();
+    const { rows: [cnt] } = await db.query('SELECT COUNT(*) FROM widget_envios WHERE empresa_id=$1', [req.empresa.id]);
+    const numero = `${prefijo}-${año}-${String(parseInt(cnt.count)+1).padStart(6,'0')}`;
+
+    // Calcular precio si no se ingresó
+    let precio = precio_total;
+    if (!precio) {
+      const { rows: [tarifa] } = await db.query(
+        `SELECT precio_base, precio_por_kg FROM empresas_tarifas WHERE empresa_id=$1 AND origen=$2 AND destino=$3 AND activo=TRUE LIMIT 1`,
+        [req.empresa.id, origen, destino]
+      );
+      if (tarifa) {
+        precio = parseFloat(tarifa.precio_base) + Math.max(0, parseFloat(peso_kg) - 50) * parseFloat(tarifa.precio_por_kg);
+        precio = Math.round(precio * 1.21); // con IVA
+      }
+    }
+
+    const remJson = JSON.stringify(remitente);
+    const destJson = JSON.stringify(destinatario);
+
+    const { rows: [envio] } = await db.query(
+      `INSERT INTO widget_envios
+        (empresa_id, numero_seguimiento, origen, destino, modalidad, tipo_servicio, forma_pago,
+        peso_kg, bultos, precio_total, estado, remitente_json, destinatario_json)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id, numero_seguimiento`,
+      [req.empresa.id, numero, origen, destino, modalidad || 'deposito_sucursal',
+      tipo_servicio || 'estandar', forma_pago || 'origen',
+      peso_kg, bultos || 1, precio || null,
+      forma_pago === 'sucursal' ? 'pendiente_entrega_deposito' : 'pendiente_retiro',
+      remJson, destJson]
+    );
+
+    await db.query(
+      `INSERT INTO tracking_widget (envio_id, estado, descripcion) VALUES ($1,$2,$3)`,
+      [envio.id, 'pendiente_retiro', 'Envío registrado manualmente por la empresa']
+    );
+
+    res.status(201).json({ ok: true, numero_seguimiento: envio.numero_seguimiento });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;
 // ── REMITO ────────────────────────────────────────────────────
 

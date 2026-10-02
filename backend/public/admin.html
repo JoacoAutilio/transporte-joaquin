@@ -216,6 +216,7 @@ tr:last-child td{border-bottom:none}
         <div class="card">
           <div class="card-hdr">
             <h2>📦 Envíos recientes</h2>
+            <button class="btn btn-or" onclick="abrirNuevoEnvio()">+ Nuevo envío</button>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
             <button class="btn btn-sm" id="filtro-todos" onclick="filtrarEstado('')" style="background:var(--ac);color:#fff">Todos</button>
@@ -321,6 +322,68 @@ tr:last-child td{border-bottom:none}
     </div>
   </div>
 </div>
+</div>
+
+<!-- MODAL NUEVO ENVÍO -->
+<div class="mo" id="mo-nuevo-envio">
+  <div class="mo-box" style="max-width:700px">
+    <div class="mo-hdr"><h3>+ Nuevo envío manual</h3><button class="mo-close" onclick="closeMo('mo-nuevo-envio')">✕</button></div>
+    <div class="mo-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-row"><label>Origen *</label><select id="ne-origen" onchange="neCargarDestinos()"><option value="">— Seleccioná —</option></select></div>
+        <div class="form-row"><label>Destino *</label><select id="ne-destino" disabled><option value="">— Primero elegí origen —</option></select></div>
+        <div class="form-row"><label>Modalidad *</label>
+          <select id="ne-modalidad">
+            <option value="deposito_sucursal">Depósito → Sucursal</option>
+            <option value="deposito_domicilio">Depósito → Domicilio</option>
+            <option value="domicilio_domicilio">Domicilio → Domicilio</option>
+          </select>
+        </div>
+        <div class="form-row"><label>Forma de pago *</label>
+          <select id="ne-pago">
+            <option value="origen">Pago en origen</option>
+            <option value="destino">Pago en destino</option>
+            <option value="sucursal">Pago en sucursal</option>
+          </select>
+        </div>
+        <div class="form-row"><label>Tipo de servicio</label>
+          <select id="ne-servicio">
+            <option value="estandar">Estándar</option>
+            <option value="express">Express 48hs</option>
+            <option value="consolidado">Consolidado</option>
+          </select>
+        </div>
+        <div class="form-row"><label>Peso (kg) *</label><input type="number" id="ne-peso" placeholder="0" min="0.1" step="0.1"></div>
+        <div class="form-row"><label>Bultos</label><input type="number" id="ne-bultos" placeholder="1" min="1" value="1"></div>
+        <div class="form-row"><label>Precio total (ARS)</label><input type="number" id="ne-precio" placeholder="Se calcula automático" min="0"></div>
+      </div>
+      <hr style="border:none;border-top:1px solid var(--bd);margin:14px 0">
+      <div style="font-size:12px;font-weight:700;color:var(--mt);text-transform:uppercase;margin-bottom:10px">👤 Remitente</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-row"><label>Nombre *</label><input id="ne-rem-nom" placeholder="Juan"></div>
+        <div class="form-row"><label>Apellido *</label><input id="ne-rem-ap" placeholder="Pérez"></div>
+        <div class="form-row"><label>DNI / CUIT *</label><input id="ne-rem-doc" placeholder="28456789"></div>
+        <div class="form-row"><label>Celular *</label><input id="ne-rem-cel" placeholder="11-1234-5678"></div>
+        <div class="form-row"><label>Email</label><input id="ne-rem-email" type="email" placeholder="mail@ejemplo.com"></div>
+        <div class="form-row"><label>Dirección</label><input id="ne-rem-dir" placeholder="Av. San Martín 1234"></div>
+      </div>
+      <hr style="border:none;border-top:1px solid var(--bd);margin:14px 0">
+      <div style="font-size:12px;font-weight:700;color:var(--mt);text-transform:uppercase;margin-bottom:10px">📬 Destinatario</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-row"><label>Nombre *</label><input id="ne-dest-nom" placeholder="María"></div>
+        <div class="form-row"><label>Apellido *</label><input id="ne-dest-ap" placeholder="García"></div>
+        <div class="form-row"><label>DNI / CUIT *</label><input id="ne-dest-doc" placeholder="28456789"></div>
+        <div class="form-row"><label>Celular *</label><input id="ne-dest-cel" placeholder="11-1234-5678"></div>
+        <div class="form-row"><label>Email</label><input id="ne-dest-email" type="email" placeholder="mail@ejemplo.com"></div>
+        <div class="form-row"><label>Dirección</label><input id="ne-dest-dir" placeholder="Av. Corrientes 456"></div>
+      </div>
+      <div id="ne-msg" style="font-size:13px;padding:10px;border-radius:7px;display:none;margin-top:12px"></div>
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button class="btn" onclick="closeMo('mo-nuevo-envio')">Cancelar</button>
+        <button class="btn btn-or" onclick="guardarNuevoEnvio()">Crear envío</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- MODAL TARIFA -->
@@ -804,6 +867,91 @@ function tarifaCiudades(tipo) {
 
 function openMo(id) { document.getElementById(id).classList.add('open'); }
 function closeMo(id) { document.getElementById(id).classList.remove('open'); }
+
+// ── NUEVO ENVÍO MANUAL ────────────────────────────────────────
+var _neTarifas = [];
+
+async function abrirNuevoEnvio() {
+  // Cargar tarifas para los selects de origen/destino
+  const r = await api('/api/tarifas');
+  if (!r) return;
+  const tarifas = await r.json();
+  _neTarifas = tarifas;
+  const origenes = [...new Set(tarifas.map(t => t.origen))].sort();
+  const sel = document.getElementById('ne-origen');
+  sel.innerHTML = '<option value="">— Seleccioná —</option>' + origenes.map(o => `<option value="${o}">${o}</option>`).join('');
+  document.getElementById('ne-destino').innerHTML = '<option value="">— Primero elegí origen —</option>';
+  document.getElementById('ne-destino').disabled = true;
+  // Limpiar campos
+  ['ne-rem-nom','ne-rem-ap','ne-rem-doc','ne-rem-cel','ne-rem-email','ne-rem-dir',
+   'ne-dest-nom','ne-dest-ap','ne-dest-doc','ne-dest-cel','ne-dest-email','ne-dest-dir',
+   'ne-peso','ne-bultos','ne-precio'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = id === 'ne-bultos' ? '1' : '';
+  });
+  document.getElementById('ne-msg').style.display = 'none';
+  openMo('mo-nuevo-envio');
+}
+
+function neCargarDestinos() {
+  const origen = document.getElementById('ne-origen').value;
+  const destinos = _neTarifas.filter(t => t.origen === origen).map(t => t.destino).sort();
+  const sel = document.getElementById('ne-destino');
+  sel.disabled = !destinos.length;
+  sel.innerHTML = destinos.length
+    ? '<option value="">— Seleccioná destino —</option>' + destinos.map(d => `<option value="${d}">${d}</option>`).join('')
+    : '<option>— No hay destinos disponibles —</option>';
+}
+
+async function guardarNuevoEnvio() {
+  const msgEl = document.getElementById('ne-msg');
+  msgEl.style.display = 'none';
+
+  const origen   = document.getElementById('ne-origen').value;
+  const destino  = document.getElementById('ne-destino').value;
+  const peso     = document.getElementById('ne-peso').value;
+  const remNom   = document.getElementById('ne-rem-nom').value.trim();
+  const remAp    = document.getElementById('ne-rem-ap').value.trim();
+  const remDoc   = document.getElementById('ne-rem-doc').value.trim();
+  const remCel   = document.getElementById('ne-rem-cel').value.trim();
+  const destNom  = document.getElementById('ne-dest-nom').value.trim();
+  const destAp   = document.getElementById('ne-dest-ap').value.trim();
+  const destDoc  = document.getElementById('ne-dest-doc').value.trim();
+  const destCel  = document.getElementById('ne-dest-cel').value.trim();
+
+  if (!origen || !destino) { showMsg(msgEl, 'Seleccioná origen y destino.'); return; }
+  if (!peso) { showMsg(msgEl, 'Ingresá el peso del envío.'); return; }
+  if (!remNom || !remDoc || !remCel) { showMsg(msgEl, 'Completá nombre, documento y celular del remitente.'); return; }
+  if (!destNom || !destDoc || !destCel) { showMsg(msgEl, 'Completá nombre, documento y celular del destinatario.'); return; }
+
+  const body = {
+    origen, destino,
+    modalidad: document.getElementById('ne-modalidad').value,
+    tipo_servicio: document.getElementById('ne-servicio').value,
+    forma_pago: document.getElementById('ne-pago').value,
+    peso_kg: parseFloat(peso),
+    bultos: parseInt(document.getElementById('ne-bultos').value) || 1,
+    precio_total: parseFloat(document.getElementById('ne-precio').value) || null,
+    remitente: { nombre: remNom, apellido: remAp, doc: remDoc, celular: remCel, email: document.getElementById('ne-rem-email').value.trim(), direccion: document.getElementById('ne-rem-dir').value.trim() },
+    destinatario: { nombre: destNom, apellido: destAp, doc: destDoc, celular: destCel, email: document.getElementById('ne-dest-email').value.trim(), direccion: document.getElementById('ne-dest-dir').value.trim() }
+  };
+
+  const r = await api('/api/admin/envios/manual', 'POST', body);
+  if (!r) return;
+  const d = await r.json();
+  if (!r.ok) { showMsg(msgEl, d.error || 'Error al crear el envío.'); return; }
+
+  closeMo('mo-nuevo-envio');
+  loadEnvios();
+  toast('Envío creado: ' + d.numero_seguimiento);
+}
+
+function showMsg(el, msg) {
+  el.textContent = msg;
+  el.style.background = '#fee2e2';
+  el.style.color = '#dc2626';
+  el.style.display = 'block';
+}
 document.querySelectorAll('.mo').forEach(m =>
   m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); })
 );
