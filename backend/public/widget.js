@@ -127,7 +127,6 @@
   }
 
   function personaFields(pre, titulo, subtitulo) {
-    var po = provOptions();
     return [
       '<div class="cw-card">',
         '<div class="cw-ctitle">'+titulo+'</div>',
