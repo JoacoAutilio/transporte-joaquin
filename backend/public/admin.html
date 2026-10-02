@@ -438,6 +438,13 @@ tr:last-child td{border-bottom:none}
 <div class="toast" id="toast"></div>
 
 <script>
+// Evitar que la rueda del mouse cambie los inputs numéricos
+document.addEventListener('wheel', function(e) {
+  if (document.activeElement && document.activeElement.type === 'number') {
+    document.activeElement.blur();
+  }
+}, { passive: true });
+
 const API = window.location.origin;
 let TOKEN = localStorage.getItem('adm_token') || '';
 let EMPRESA = JSON.parse(localStorage.getItem('adm_empresa') || 'null');

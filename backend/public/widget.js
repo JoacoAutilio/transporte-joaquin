@@ -10,6 +10,14 @@
   var API_BASE    = scriptTag.getAttribute('data-api') || window.location.origin;
   var containerId = scriptTag.getAttribute('data-container') || 'cotizador-widget';
 
+  // Evitar que la rueda del mouse cambie los inputs numéricos del widget
+  document.addEventListener('wheel', function(e) {
+    var el = document.activeElement;
+    if (el && el.type === 'number' && el.closest('#' + containerId)) {
+      el.blur();
+    }
+  }, { passive: true });
+
 
   var ESTADO_LABELS = {confirmado:"Confirmado",en_transito:"En tránsito",en_centro:"En centro de distribución",en_camino:"En camino al destino",entregado:"Entregado",cancelado:"Cancelado",pendiente_pago:"Pendiente de pago",pendiente_retiro:"Pendiente de retiro",pendiente_entrega_deposito:"Pendiente de entrega en depósito",en_deposito_origen:"En depósito de origen"};
     var ESTADO_COLORS = {confirmado:"#3b82f6",en_transito:"#8b5cf6",en_centro:"#06b6d4",en_camino:"#f97316",entregado:"#16a34a",cancelado:"#dc2626",pendiente_pago:"#f59e0b",pendiente_retiro:"#f59e0b",pendiente_entrega_deposito:"#f59e0b",en_deposito_origen:"#06b6d4"};
