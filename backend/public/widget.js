@@ -539,7 +539,11 @@
           else if(recTipo==='monto'){ recargo=Math.round(recValor); recargoLabel='Recargo pago en destino'; }
         }
 
-        var sinIVA=flete+recargo;
+        // Seguro sobre valor declarado (también antes del IVA)
+        var seguro=0, seguroPct=parseFloat(empCfg.seguro_porcentaje)||0;
+        if(seguroPct>0&&valorDeclarado>0) seguro=Math.round(valorDeclarado*seguroPct/100);
+
+        var sinIVA=flete+recargo+seguro;
         var iva=Math.round(sinIVA*0.21);
         var total=Math.round(sinIVA*1.21);
         var fmt=function(n){return '$'+Math.round(n).toLocaleString('es-AR');};
@@ -554,7 +558,7 @@
         // Guardar datos para el pago
         window._cwCotizacion = {
           origen:origen,destino:destino,peso_kg:peso,volumen_m3:volM3,
-          tipo_servicio:servicio,precio_total:total,recargo_destino:recargo,valor_declarado:valorDeclarado,modalidad:modalidad,pago:pago,
+          tipo_servicio:servicio,precio_total:total,recargo_destino:recargo,seguro:seguro,valor_declarado:valorDeclarado,modalidad:modalidad,pago:pago,
           remitente:{tipo:tipoRem,nombre:remNom,apellido:remAp,doc:remDoc,celular:remCel,email:v('cw-rem-email'),calle:remCalle,numero:remNum,entre:remEntre,cp:remCP},
           destinatario:{tipo:tipoDest,nombre:destNom,apellido:destAp,doc:destDoc,celular:destCel,email:v('cw-dest-email'),calle:destCalle,numero:destNum,entre:destEntre,cp:destCP}
         };
@@ -565,10 +569,9 @@
             '<div class="cw-runit">ARS · IVA incluido (21%) · <span style="color:#f97316;font-weight:600">⚠️ Precio sujeto a modificación según pesaje real en sucursal</span></div>',
             '<div class="cw-rbadge">⏱ '+data.plazo+'</div>',
             '<div class="cw-rrows">',
-              (recargo>0
-                ? '<div class="cw-rrow"><span>Flete</span><span>'+fmt(flete)+'</span></div>'+
-                  '<div class="cw-rrow"><span>'+recargoLabel+'</span><span>+'+fmt(recargo)+'</span></div>'
-                : ''),
+              (recargo>0||seguro>0 ? '<div class="cw-rrow"><span>Flete</span><span>'+fmt(flete)+'</span></div>' : ''),
+              (recargo>0 ? '<div class="cw-rrow"><span>'+recargoLabel+'</span><span>+'+fmt(recargo)+'</span></div>' : ''),
+              (seguro>0 ? '<div class="cw-rrow"><span>Seguro ('+seguroPct+'%)</span><span>+'+fmt(seguro)+'</span></div>' : ''),
               '<div class="cw-rrow"><span>Precio sin IVA</span><span>'+fmt(sinIVA)+'</span></div>',
               '<div class="cw-rrow"><span>IVA (21%)</span><span>'+fmt(iva)+'</span></div>',
               '<div class="cw-rrow"><span>Peso efectivo</span><span>'+data.peso_efectivo_kg+' kg</span></div>',

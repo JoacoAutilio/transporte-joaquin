@@ -194,7 +194,8 @@ router.put('/configuracion', async (req, res) => {
     email_admin,
     direccion, cuit, direccion_deposito, codigo_prefijo,
     recargo_destino_tipo, recargo_destino_valor,
-    limite_peso_kg, limite_largo_cm, limite_ancho_cm, limite_alto_cm, limite_volumen_m3
+    limite_peso_kg, limite_largo_cm, limite_ancho_cm, limite_alto_cm, limite_volumen_m3,
+    seguro_porcentaje
   } = req.body;
   try {
     await db.query(
@@ -214,7 +215,8 @@ router.put('/configuracion', async (req, res) => {
          limite_largo_cm = $13,
          limite_ancho_cm = $14,
          limite_alto_cm = $15,
-         limite_volumen_m3 = $16
+         limite_volumen_m3 = $16,
+         seguro_porcentaje = COALESCE($18, seguro_porcentaje)
        WHERE id = $17`,
       [
         nombre || null, telefono || null, color_primario || null, mp_access_token || null,
@@ -223,7 +225,9 @@ router.put('/configuracion', async (req, res) => {
         recargo_destino_tipo || null, recargo_destino_valor || null,
         limite_peso_kg || null, limite_largo_cm || null, limite_ancho_cm || null,
         limite_alto_cm || null, limite_volumen_m3 || null,
-        req.empresa.id
+        req.empresa.id,
+        // 0 es un valor válido (desactiva el seguro), por eso no se usa || null
+        seguro_porcentaje === '' || seguro_porcentaje == null ? null : Number(seguro_porcentaje)
       ]
     );
     res.json({ ok: true });

@@ -252,6 +252,7 @@ tr:last-child td{border-bottom:none}
               <div class="form-row"><label>Prefijo de código</label><input id="cfg-prefijo" placeholder="Ej: TC" maxlength="6"><div style="font-size:11px;color:var(--mt);margin-top:3px">Ej: TC → TC-2026-000001</div></div>
               <div class="form-row"><label>Dirección de la empresa</label><input id="cfg-direccion" placeholder="Av. San Martín 1234, Neuquén"></div>
               <div class="form-row"><label>Dirección del depósito</label><input id="cfg-deposito" placeholder="Ruta 22 Km 5, Neuquén"></div>
+              <div class="form-row"><label>Porcentaje de seguro (%)</label><input type="number" id="cfg-seguro" placeholder="0" min="0" max="100" step="0.01"><div style="font-size:11px;color:var(--mt);margin-top:3px">Se cobra sobre el valor declarado. 0 = sin seguro.</div></div>
             </div>
 
             <hr style="border:none;border-top:1px solid var(--bd);margin:20px 0">
@@ -1417,6 +1418,7 @@ async function loadConfig() {
   document.getElementById('cfg-direccion').value = d.direccion || '';
   document.getElementById('cfg-deposito').value  = d.direccion_deposito || '';
   document.getElementById('cfg-prefijo').value   = d.codigo_prefijo || '';
+  document.getElementById('cfg-seguro').value    = d.seguro_porcentaje != null ? Number(d.seguro_porcentaje) : '';
   document.getElementById('cfg-color').value     = d.color_primario || '#E8500A';
   document.getElementById('cfg-color-pick').value= d.color_primario || '#E8500A';
   document.getElementById('cfg-email').value     = d.email_admin || '';
@@ -1476,6 +1478,7 @@ async function guardarConfig() {
     cuit: document.getElementById('cfg-cuit').value.trim() || null,
     direccion_deposito: document.getElementById('cfg-deposito').value.trim() || null,
     codigo_prefijo: document.getElementById('cfg-prefijo').value.trim() || null,
+    seguro_porcentaje: document.getElementById('cfg-seguro').value === '' ? 0 : parseFloat(document.getElementById('cfg-seguro').value),
     recargo_destino_tipo: document.getElementById('cfg-recargo-tipo').value || null,
     recargo_destino_valor: document.getElementById('cfg-recargo-valor').value || null,
     limite_peso_kg: document.getElementById('cfg-lim-peso').value || null,

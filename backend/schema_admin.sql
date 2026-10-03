@@ -66,3 +66,6 @@ ALTER TABLE empresas ADD COLUMN IF NOT EXISTS limite_volumen_m3 NUMERIC(10,3);
 
 -- Valor declarado de la mercadería
 ALTER TABLE widget_envios ADD COLUMN IF NOT EXISTS valor_declarado NUMERIC(12,2);
+
+-- Seguro sobre valor declarado
+ALTER TABLE empresas ADD COLUMN IF NOT EXISTS seguro_porcentaje NUMERIC(5,2) DEFAULT 0;
