@@ -303,23 +303,30 @@ router.post('/envios/manual', async (req, res) => {
     const remJson = JSON.stringify(remitente);
     const destJson = JSON.stringify(destinatario);
 
+    // Estado inicial según modalidad: solo domicilio→domicilio requiere retiro
+    const modalidadFinal = modalidad || 'deposito_sucursal';
+    const estado = modalidadFinal === 'domicilio_domicilio' ? 'pendiente_retiro' : 'pendiente_entrega_deposito';
+    const descripcionTracking = estado === 'pendiente_retiro'
+      ? 'Envío registrado. Coordinaremos el retiro a domicilio.'
+      : 'Envío registrado. El cliente debe entregar el paquete en el depósito.';
+
     const { rows: [envio] } = await db.query(
       `INSERT INTO widget_envios
         (empresa_id, numero_seguimiento, origen, destino, modalidad, tipo_servicio, forma_pago,
         peso_kg, bultos, largo_cm, ancho_cm, alto_cm, precio_total, estado, remitente_json, destinatario_json,
         valor_declarado)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING id, numero_seguimiento`,
-      [req.empresa.id, numero, origen, destino, modalidad || 'deposito_sucursal',
+      [req.empresa.id, numero, origen, destino, modalidadFinal,
       tipo_servicio || 'estandar', forma_pago || 'origen',
       peso_kg, bultos || 1, req.body.largo_cm || null, req.body.ancho_cm || null, req.body.alto_cm || null,
       precio || null,
-      forma_pago === 'sucursal' ? 'pendiente_entrega_deposito' : 'pendiente_retiro',
+      estado,
       remJson, destJson, parseFloat(valor_declarado)]
     );
 
     await db.query(
       `INSERT INTO tracking_widget (envio_id, estado, descripcion) VALUES ($1,$2,$3)`,
-      [envio.id, 'pendiente_retiro', 'Envío registrado manualmente por la empresa']
+      [envio.id, estado, descripcionTracking]
     );
 
     // Los envíos manuales guardan precio_total con IVA
