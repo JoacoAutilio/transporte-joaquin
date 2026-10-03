@@ -140,12 +140,12 @@
         '<div class="cw-ctitle">'+titulo+'</div>',
         '<div class="cw-csub">'+subtitulo+'</div>',
         '<div class="cw-tipo-grid">',
-          '<button type="button" class="cw-tipo-btn on" onclick="cwTipo(\''+pre+'\',\'particular\',this)">',
+          '<button type="button" class="cw-tipo-btn on" data-pre="'+pre+'" data-tipo="particular" onclick="cwTipo(\''+pre+'\',\'particular\',this)">',
             '<span class="tbi">👤</span>',
             '<span class="tbl">Particular</span>',
             '<span class="tbs">Persona física</span>',
           '</button>',
-          '<button type="button" class="cw-tipo-btn" onclick="cwTipo(\''+pre+'\',\'empresa\',this)">',
+          '<button type="button" class="cw-tipo-btn" data-pre="'+pre+'" data-tipo="empresa" onclick="cwTipo(\''+pre+'\',\'empresa\',this)">',
             '<span class="tbi">🏢</span>',
             '<span class="tbl">Empresa</span>',
             '<span class="tbs">Persona jurídica</span>',
@@ -225,9 +225,9 @@
               '</div>',
               '<div class="cw-row"><label>Modalidad de envío</label>',
                 '<div class="cw-modal-list">',
-                  '<button type="button" class="cw-modal-item on" onclick="cwModal(this,\'deposito_sucursal\')"><span class="cw-modal-ico">🏭</span><div class="cw-modal-txt"><strong>Entrega en depósito → Retiro en sucursal</strong><span>Dejás en nuestro depósito, retiran en sucursal</span></div><div class="cw-radio"></div></button>',
-                  '<button type="button" class="cw-modal-item" onclick="cwModal(this,\'deposito_domicilio\')"><span class="cw-modal-ico">🏠</span><div class="cw-modal-txt"><strong>Entrega en depósito → Entrega a domicilio</strong><span>Dejás en depósito, entregamos en casa</span></div><div class="cw-radio"></div></button>',
-                  '<button type="button" class="cw-modal-item" onclick="cwModal(this,\'domicilio_domicilio\')"><span class="cw-modal-ico">🚛</span><div class="cw-modal-txt"><strong>Retiro a domicilio → Entrega a domicilio</strong><span>Retiramos y entregamos en domicilio</span></div><div class="cw-radio"></div></button>',
+                  '<button type="button" class="cw-modal-item on" data-modalidad="deposito_sucursal" onclick="cwModal(this,\'deposito_sucursal\')"><span class="cw-modal-ico">🏭</span><div class="cw-modal-txt"><strong>Entrega en depósito → Retiro en sucursal</strong><span>Dejás en nuestro depósito, retiran en sucursal</span></div><div class="cw-radio"></div></button>',
+                  '<button type="button" class="cw-modal-item" data-modalidad="deposito_domicilio" onclick="cwModal(this,\'deposito_domicilio\')"><span class="cw-modal-ico">🏠</span><div class="cw-modal-txt"><strong>Entrega en depósito → Entrega a domicilio</strong><span>Dejás en depósito, entregamos en casa</span></div><div class="cw-radio"></div></button>',
+                  '<button type="button" class="cw-modal-item" data-modalidad="domicilio_domicilio" onclick="cwModal(this,\'domicilio_domicilio\')"><span class="cw-modal-ico">🚛</span><div class="cw-modal-txt"><strong>Retiro a domicilio → Entrega a domicilio</strong><span>Retiramos y entregamos en domicilio</span></div><div class="cw-radio"></div></button>',
                 '</div>',
               '</div>',
             '</div>',
@@ -944,11 +944,39 @@
       cwTab('tracking',document.querySelectorAll('.cw-tab')[1]);
       cwRastrear();
     }
+
+    // Estado inicial: restaurar lo guardado, o arrancar en deposito_sucursal con el primer botón activo
+    if (_saved.campos) restoreEstado(_saved);
+    else {
+      cwSetModalidad('deposito_sucursal');
+      cwSetTipo('rem', 'particular');
+      cwSetTipo('dest', 'particular');
+    }
   }
+
+  // Activa visualmente el tipo (particular/empresa) de remitente o destinatario y sincroniza la variable (vía cwTipo)
+  function cwSetTipo(pre, tipo) {
+    var cont = document.getElementById(containerId);
+    var btn = cont.querySelector('.cw-tipo-btn[data-pre="' + pre + '"][data-tipo="' + tipo + '"]')
+           || cont.querySelector('.cw-tipo-btn[data-pre="' + pre + '"][data-tipo="particular"]');
+    if (btn) cwTipo(pre, btn.getAttribute('data-tipo'), btn);
+  }
+
+  // Activa visualmente el botón de modalidad y sincroniza la variable (vía cwModal)
+  function cwSetModalidad(valor) {
+    var cont = document.getElementById(containerId);
+    var btn = cont.querySelector('.cw-modal-item[data-modalidad="' + valor + '"]')
+           || cont.querySelector('.cw-modal-item[data-modalidad="deposito_sucursal"]');
+    if (btn) cwModal(btn, btn.getAttribute('data-modalidad'));
+  }
+
   // Restaurar campos si hay estado guardado
     function restoreEstado(savedState) {
     var c = savedState.campos;
     if (!c) return;
+    // Tipo de persona primero: cwTipo ajusta labels y limpia el apellido si es empresa
+    cwSetTipo('rem',  savedState.tipoRem  || 'particular');
+    cwSetTipo('dest', savedState.tipoDest || 'particular');
     if (c.origen) { document.getElementById('cw-origen').value = c.origen; cwFiltrarDestinos(); setTimeout(function(){ if(c.destino) document.getElementById('cw-destino').value = c.destino; }, 100); }
     if (c.peso) document.getElementById('cw-peso').value = c.peso;
     if (c.bultos) document.getElementById('cw-bultos').value = c.bultos;
@@ -979,10 +1007,14 @@
     if (c.destCalle) document.getElementById('cw-dest-calle').value = c.destCalle;
     if (c.destNum) document.getElementById('cw-dest-num').value = c.destNum;
     if (c.destCP) document.getElementById('cw-dest-cp').value = c.destCP;
+    // Restaurar modalidad (botón activo + variable)
+    cwSetModalidad(savedState.modalidad || 'deposito_sucursal');
     // Restaurar cotización guardada
     var savedCotizacion = sessionStorage.getItem('cw_cotizacion');
     if (savedCotizacion) window._cwCotizacion = JSON.parse(savedCotizacion);
-    if (savedState.paso && savedState.paso > 1) setTimeout(function(){ cwGoTo(savedState.paso); }, 300);
+    // El paso 5 (resultado) se arma en cwCotizar(); si se guardó ahí, volver al 4 para recotizar
+    var paso = Math.min(savedState.paso || 1, 4);
+    if (paso > 1) setTimeout(function(){ cwGoTo(paso); }, 300);
   }
   fetch(API_BASE+'/api/widget/'+empresa+'/config')
     .then(function(r){return r.json();})
