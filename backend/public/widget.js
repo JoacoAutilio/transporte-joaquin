@@ -558,7 +558,7 @@
         // Guardar datos para el pago
         window._cwCotizacion = {
           origen:origen,destino:destino,peso_kg:peso,volumen_m3:volM3,
-          tipo_servicio:servicio,precio_total:total,recargo_destino:recargo,seguro:seguro,valor_declarado:valorDeclarado,modalidad:modalidad,pago:pago,
+          tipo_servicio:servicio,precio_total:total,flete:flete,recargo_destino:recargo,seguro:seguro,valor_declarado:valorDeclarado,modalidad:modalidad,pago:pago,
           remitente:{tipo:tipoRem,nombre:remNom,apellido:remAp,doc:remDoc,celular:remCel,email:v('cw-rem-email'),calle:remCalle,numero:remNum,entre:remEntre,cp:remCP},
           destinatario:{tipo:tipoDest,nombre:destNom,apellido:destAp,doc:destDoc,celular:destCel,email:v('cw-dest-email'),calle:destCalle,numero:destNum,entre:destEntre,cp:destCP}
         };
@@ -726,7 +726,6 @@
       var emp = window._cwEmpresa || {};
       var fmt = function(n){ return '$' + Math.round(n).toLocaleString('es-AR'); };
       var sinIVA = Math.round((cot.precio_total || 0) / 1.21);
-      var iva = Math.round(sinIVA * 0.21);
 
       // Colores
       var naranja = [232, 80, 10];
@@ -851,11 +850,19 @@
 
       doc.setTextColor(50, 50, 50);
       doc.setFont('helvetica', 'normal');
-      var precios = [
-        ['Flete (sin IVA)', fmt(sinIVA)],
-        ['IVA (21%)', fmt(iva)],
-        ['Total', fmt(cot.precio_total || 0)],
-      ];
+      var seguroPdf  = Number(cot.seguro) || 0;
+      var recargoPdf = Number(cot.recargo_destino) || 0;
+      var fletePdf   = cot.flete != null ? Number(cot.flete) : sinIVA - seguroPdf - recargoPdf;
+      var segPct     = parseFloat(((window._cwConfig || {}).empresa || {}).seguro_porcentaje) || 0;
+      var sinIVAPdf  = fletePdf + seguroPdf + recargoPdf;
+      var precios = [['Flete (sin IVA)', fmt(fletePdf)]];
+      if (seguroPdf > 0)  precios.push(['Seguro' + (segPct ? ' (' + segPct + '%)' : ''), fmt(seguroPdf)]);
+      if (recargoPdf > 0) precios.push(['Recargo pago en destino', fmt(recargoPdf)]);
+      precios.push(
+        ['Precio sin IVA', fmt(sinIVAPdf)],
+        ['IVA (21%)', fmt((cot.precio_total || 0) - sinIVAPdf)],
+        ['Total con IVA', fmt(cot.precio_total || 0)]
+      );
       precios.forEach(function(p) {
         doc.text(p[0] + ':', col1, y);
         doc.text(p[1], col1 + 50, y);

@@ -138,7 +138,7 @@ const ESTADOS = {
   confirmado: 'Confirmado',
 };
 
-const htmlNuevoEnvio = (e, emp, rem, dest, total) => layout(emp.nombre, 'Nuevo envío registrado', `
+const htmlNuevoEnvio = (e, emp, rem, dest, total, p) => layout(emp.nombre, 'Nuevo envío registrado', `
   ${codigoBox(e.numero_seguimiento)}
   ${seccion('Envío', [
     fila('Estado', ESTADOS[e.estado] || e.estado),
@@ -151,8 +151,13 @@ const htmlNuevoEnvio = (e, emp, rem, dest, total) => layout(emp.nombre, 'Nuevo e
     fila('Modalidad', MODALIDADES[e.modalidad] || e.modalidad),
     fila('Forma de pago', PAGOS[e.forma_pago] || e.forma_pago),
   ])}
+  ${e.precio_total != null ? seccion('Precio', [
+    fila('Flete (sin IVA)', fmt(p.flete)),
+    p.seguro > 0 ? fila(`Seguro (${p.seguroPct}%)`, fmt(p.seguro)) : '',
+    fila('IVA (21%)', fmt(p.iva)),
+  ]) : ''}
   <div style="margin-top:20px;padding:16px;border:2px solid ${NARANJA};border-radius:10px;text-align:center">
-    <div style="color:#6b7280;font-size:13px">Precio total (IVA incluido)</div>
+    <div style="color:#6b7280;font-size:13px">Total (IVA incluido)</div>
     <div style="color:${NARANJA};font-size:28px;font-weight:800;margin-top:4px">${e.precio_total != null ? fmt(total) : '—'}</div>
   </div>`);
 
@@ -175,7 +180,7 @@ async function enviarMailNuevoEnvio(envioId, { precioConIva = false } = {}) {
     if (!e) return console.warn(`Mail: envío ${envioId} no encontrado`);
 
     const { rows: [emp] } = await db.query(
-      'SELECT nombre, email_admin AS email FROM empresas WHERE id = $1',
+      'SELECT nombre, email_admin AS email, seguro_porcentaje FROM empresas WHERE id = $1',
       [e.empresa_id]
     );
     if (!emp?.email) return; // la empresa no tiene email cargado
@@ -184,11 +189,20 @@ async function enviarMailNuevoEnvio(envioId, { precioConIva = false } = {}) {
     const dest = parseJSON(e.destinatario_json);
     const total = precioConIva ? Number(e.precio_total) : Math.round(Number(e.precio_total) * 1.21);
 
+    // Desglose: el seguro no se guarda aparte, se recalcula con el % actual de la empresa.
+    // Solo aplica a envíos del widget; la carga manual no suma seguro.
+    const seguroPct = Number(emp.seguro_porcentaje) || 0;
+    const seguro = !precioConIva && seguroPct > 0 && Number(e.valor_declarado) > 0
+      ? Math.round(Number(e.valor_declarado) * seguroPct / 100)
+      : 0;
+    const sinIVA = precioConIva ? Math.round(total / 1.21) : Math.round(Number(e.precio_total));
+    const desglose = { flete: sinIVA - seguro, seguro, seguroPct, iva: total - sinIVA };
+
     const { error } = await getResend().emails.send({
       from: FROM,
       to: emp.email,
       subject: `Nuevo envío ${e.numero_seguimiento}: ${e.origen} → ${e.destino}`,
-      html: htmlNuevoEnvio(e, emp, rem, dest, total),
+      html: htmlNuevoEnvio(e, emp, rem, dest, total, desglose),
     });
     if (error) console.error('Resend error:', error);
   } catch (err) {
