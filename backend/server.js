@@ -9,7 +9,16 @@ const PORT = process.env.PORT || 3001;
 
 app.use(cors({ origin: '*' }));
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  // widget.js se embebe en sitios de clientes: que siempre bajen la última versión
+  setHeaders: (res, filePath) => {
+    if (path.basename(filePath) === 'widget.js') {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  },
+}));
 
 app.use((req, _res, next) => {
   console.log(`${new Date().toISOString()} ${req.method} ${req.path}`);
