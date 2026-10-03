@@ -115,6 +115,18 @@
       .cw-tev p{font-size:13px;font-weight:600;color:#111}
       .cw-tev small{font-size:12px;color:#6b7280}
       .cw-track-err{color:#dc2626;font-size:13px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px;display:none;margin-top:10px}
+      .cw-sl-desk{display:none}
+      @media(min-width:481px){
+        .cw-paso2-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+        .cw-rem-dest-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+        #cw-sd4-wrap{display:none}
+        #cw-sl3{display:none}
+        .cw-sl-mob{display:none}
+        .cw-sl-desk{display:inline}
+      }
+      @media(min-width:481px){
+        #cw-root{max-width:900px}
+      }
       @media(max-width:480px){.cw-g2{grid-template-columns:1fr}.cw-g3{grid-template-columns:1fr}.cw-pay-btns{grid-template-columns:1fr}.cw-tipo-grid{grid-template-columns:1fr}}
     `;
     document.head.appendChild(s);
@@ -207,9 +219,9 @@
             '<div class="cw-line" id="cw-sl1"></div>',
             '<div class="cw-sw"><div class="cw-sd" id="cw-sd2">2</div><div class="cw-sl">Paquete</div></div>',
             '<div class="cw-line" id="cw-sl2"></div>',
-            '<div class="cw-sw"><div class="cw-sd" id="cw-sd3">3</div><div class="cw-sl">Remitente</div></div>',
+            '<div class="cw-sw"><div class="cw-sd" id="cw-sd3">3</div><div class="cw-sl"><span class="cw-sl-mob">Remitente</span><span class="cw-sl-desk">Rem. / Dest.</span></div></div>',
             '<div class="cw-line" id="cw-sl3"></div>',
-            '<div class="cw-sw"><div class="cw-sd" id="cw-sd4">4</div><div class="cw-sl">Destinatario</div></div>',
+            '<div class="cw-sw" id="cw-sd4-wrap"><div class="cw-sd" id="cw-sd4">4</div><div class="cw-sl">Destinatario</div></div>',
             '<div class="cw-line" id="cw-sl4"></div>',
             '<div class="cw-sw"><div class="cw-sd" id="cw-sd5">5</div><div class="cw-sl">Pago</div></div>',
           '</div>',
@@ -239,6 +251,8 @@
             '<div class="cw-card">',
               '<div class="cw-ctitle">⚖️ ¿Qué vas a enviar?</div>',
               '<div class="cw-csub">Peso, medidas y tipo de servicio</div>',
+              '<div class="cw-paso2-grid">',
+              '<div>',
               '<div class="cw-g2">',
                 '<div class="cw-row"><label>Peso (kg) *</label><input type="number" id="cw-peso" placeholder="0" min="0.1" step="0.1" oninput="cwVol()"></div>',
                 '<div class="cw-row"><label>Cantidad de bultos</label><input type="number" id="cw-bultos" placeholder="1" min="1" value="1" oninput="cwVol()"></div>',
@@ -249,6 +263,8 @@
                 '<div id="cw-limite-aviso" style="display:none;margin-top:8px;background:#fef2f2;border:1px solid #fecaca;border-radius:7px;padding:8px 12px;font-size:12px;font-weight:600;color:#dc2626">⚠️ Este envío supera los límites de carga. Contactá a la empresa.</div>',
               '</div>',
               '<div class="cw-row"><label>Valor declarado de la mercadería ($) *</label><input type="number" id="cw-valor-declarado" placeholder="0" min="1" step="1"></div>',
+              '</div>',
+              '<div>',
               '<div class="cw-row"><label>Tipo de servicio</label>',
                 '<select id="cw-servicio">',
                   '<option value="estandar">Estándar — 3 a 5 días hábiles</option>',
@@ -265,19 +281,24 @@
               '</div>',
               '<div class="cw-row"><label>Descripción del contenido (opcional)</label><input type="text" id="cw-descripcion" placeholder="Ej: ropa, electrodoméstico, documentos..." maxlength="300"></div>',
               '<div class="cw-row"><label>Foto del paquete (opcional)</label><input type="file" id="cw-foto" accept="image/*" style="padding:6px 13px;font-size:13px"></div>',
+              '</div>',
+              '</div>',
             '</div>',
             '<div class="cw-nav"><button class="cw-btn-back" onclick="cwGoTo(1)">‹ Atrás</button><button class="cw-btn-next" onclick="cwGoTo(3)">Siguiente ›</button></div>',
           '</div>',
 
-          // PASO 3: REMITENTE
+          // PASO 3: REMITENTE (en desktop también muestra el destinatario al lado, ver cwLayout)
           '<div id="cw-paso3" style="display:none">',
-            personaFields('rem','👤 Datos del remitente','Quien envía el paquete'),
-            '<div class="cw-nav"><button class="cw-btn-back" onclick="cwGoTo(2)">‹ Atrás</button><button class="cw-btn-next" onclick="cwGoTo(4)">Siguiente ›</button></div>',
+            '<div class="cw-rem-dest-grid">',
+              '<div>'+personaFields('rem','👤 Datos del remitente','Quien envía el paquete')+'</div>',
+              '<div id="cw-dest-slot-desktop"></div>',
+            '</div>',
+            '<div class="cw-nav"><button class="cw-btn-back" onclick="cwGoTo(2)">‹ Atrás</button><button class="cw-btn-next" id="cw-paso3-next" onclick="cwPaso3Siguiente()">Siguiente ›</button></div>',
           '</div>',
 
-          // PASO 4: DESTINATARIO
+          // PASO 4: DESTINATARIO (solo mobile; en desktop la card se mueve al paso 3)
           '<div id="cw-paso4" style="display:none">',
-            personaFields('dest','📬 Datos del destinatario','Quien recibe el paquete'),
+            '<div id="cw-dest-slot-mobile"><div id="cw-dest-card">'+personaFields('dest','📬 Datos del destinatario','Quien recibe el paquete')+'</div></div>',
             '<div class="cw-nav"><button class="cw-btn-back" onclick="cwGoTo(3)">‹ Atrás</button><button class="cw-btn-next" onclick="cwCotizar()">Ver precio 💰</button></div>',
           '</div>',
 
@@ -344,6 +365,8 @@
 
     // ── Wizard navigation
     window.cwGoTo = function(n) {
+      // En desktop el paso 4 está dentro del 3 (remitente y destinatario juntos)
+      if (n === 4 && window.innerWidth > 480) n = 3;
       // Guardar estado antes de avanzar
       sessionStorage.setItem('cw_estado', JSON.stringify({
         modalidad: modalidad,
@@ -402,6 +425,32 @@
         }
       }
     }
+
+    // ── Layout desktop/mobile de remitente + destinatario
+    // La card del destinatario existe una sola vez (ids únicos) y se mueve de lugar:
+    // desktop → columna derecha del paso 3; mobile → paso 4.
+    var _cwEsDesktop = null;
+    function cwLayout() {
+      var esDesktop = window.innerWidth > 480;
+      if (esDesktop === _cwEsDesktop) return;
+      _cwEsDesktop = esDesktop;
+      var card = document.getElementById('cw-dest-card');
+      var slot = document.getElementById(esDesktop ? 'cw-dest-slot-desktop' : 'cw-dest-slot-mobile');
+      if (card && slot && card.parentNode !== slot) slot.appendChild(card);
+      var btn3 = document.getElementById('cw-paso3-next');
+      if (btn3 && !btn3.disabled) btn3.textContent = esDesktop ? 'Ver precio 💰' : 'Siguiente ›';
+      // Si se agranda la ventana estando en el paso 4, pasar al 3 (que ahora muestra ambos)
+      if (esDesktop && currentPaso === 4) cwGoTo(3);
+    }
+    cwLayout();
+    var _cwResizeT;
+    window.addEventListener('resize', function() { clearTimeout(_cwResizeT); _cwResizeT = setTimeout(cwLayout, 150); });
+
+    // Paso 3 → desktop: cotiza directo (valida remitente y destinatario); mobile: va al paso 4
+    window.cwPaso3Siguiente = function() {
+      if (window.innerWidth > 480) cwCotizar();
+      else cwGoTo(4);
+    };
 
     // ── Filtrar destinos según origen
     window.cwFiltrarDestinos = function() {
@@ -521,7 +570,9 @@
       var destino=ciudDestino;
 
       // Llamar a la API
-      var btnNext = document.querySelector('#cw-paso4 .cw-btn-next');
+      // Botón que disparó la cotización: paso 4 en mobile, paso 3 en desktop
+      var btnNext = document.querySelector('#cw-paso'+currentPaso+' .cw-btn-next') || document.querySelector('#cw-paso4 .cw-btn-next');
+      var btnNextLabel = btnNext.textContent;
       btnNext.disabled=true; btnNext.textContent='Calculando...';
 
       try {
@@ -631,7 +682,7 @@
       } catch(e) {
         showErr(e.message);
       } finally {
-        btnNext.disabled=false; btnNext.textContent='Ver precio 💰';
+        btnNext.disabled=false; btnNext.textContent=btnNextLabel;
       }
     };
 
