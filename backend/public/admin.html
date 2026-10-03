@@ -1170,12 +1170,17 @@ async function generarPDFRemito(envio, recepcion) {
   function addCopy(doc, offsetY) {
     // Header empresa
     doc.setFillColor(r,g,b);
-    doc.rect(0, offsetY, 210, 18, 'F');
+    doc.rect(0, offsetY, 210, 22, 'F');
     doc.setTextColor(255,255,255);
     doc.setFontSize(14); doc.setFont('helvetica','bold');
-    doc.text(envio.empresa_nombre || 'Empresa', 14, offsetY+12);
-    doc.setFontSize(9); doc.setFont('helvetica','normal');
-    doc.text('Tel: ' + (envio.empresa_telefono || '-'), 140, offsetY+12);
+    doc.text(envio.empresa_nombre || 'Empresa', 14, offsetY+8);
+    doc.setFontSize(8); doc.setFont('helvetica','normal');
+    if (envio.empresa_direccion) doc.text(envio.empresa_direccion, 14, offsetY+13.5);
+    const datosEmp = [
+      envio.empresa_cuit ? 'CUIT: ' + envio.empresa_cuit : '',
+      envio.empresa_telefono ? 'Tel: ' + envio.empresa_telefono : ''
+    ].filter(Boolean).join('   |   ');
+    if (datosEmp) doc.text(datosEmp, 14, envio.empresa_direccion ? offsetY+18 : offsetY+13.5);
 
     // Título remito
     doc.setTextColor(0,0,0);

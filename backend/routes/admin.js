@@ -377,6 +377,7 @@ router.get('/envios/:id/remito/datos', async (req, res) => {
   try {
     const { rows } = await db.query(
       `SELECT e.*, emp.nombre AS empresa_nombre, emp.telefono AS empresa_telefono,
+              emp.cuit AS empresa_cuit, emp.direccion AS empresa_direccion,
               emp.color_primario, emp.slug
        FROM widget_envios e
        JOIN empresas emp ON e.empresa_id = emp.id
