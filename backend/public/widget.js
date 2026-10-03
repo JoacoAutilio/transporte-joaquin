@@ -263,6 +263,8 @@
                   '<option value="sucursal">Pagar en sucursal (efectivo o transferencia)</option>',
                 '</select>',
               '</div>',
+              '<div class="cw-row"><label>Descripción del contenido (opcional)</label><input type="text" id="cw-descripcion" placeholder="Ej: ropa, electrodoméstico, documentos..." maxlength="300"></div>',
+              '<div class="cw-row"><label>Foto del paquete (opcional)</label><input type="file" id="cw-foto" accept="image/*" style="padding:6px 13px;font-size:13px"></div>',
             '</div>',
             '<div class="cw-nav"><button class="cw-btn-back" onclick="cwGoTo(1)">‹ Atrás</button><button class="cw-btn-next" onclick="cwGoTo(3)">Siguiente ›</button></div>',
           '</div>',
@@ -359,6 +361,7 @@
           valorDeclarado: document.getElementById('cw-valor-declarado')?.value,
           servicio: document.getElementById('cw-servicio')?.value,
           pago: document.getElementById('cw-pago')?.value,
+          descripcion: document.getElementById('cw-descripcion')?.value,
           remNom: document.getElementById('cw-rem-nom')?.value,
           remAp: document.getElementById('cw-rem-ap')?.value,
           remDoc: document.getElementById('cw-rem-doc')?.value,
@@ -555,8 +558,11 @@
         var dirRem=remCalle+' '+remNum+(remEntre?', entre '+remEntre:'')+(remCP?' (CP '+remCP+')':'');
         var dirDest=destCalle+' '+destNum+(destEntre?', entre '+destEntre:'')+(destCP?' (CP '+destCP+')':'');
 
+        var descripcion = document.getElementById('cw-descripcion')?.value.trim() || '';
+
         // Guardar datos para el pago
         window._cwCotizacion = {
+          descripcion:descripcion,
           origen:origen,destino:destino,peso_kg:peso,volumen_m3:volM3,
           tipo_servicio:servicio,precio_total:total,flete:flete,recargo_destino:recargo,seguro:seguro,valor_declarado:valorDeclarado,modalidad:modalidad,pago:pago,
           remitente:{tipo:tipoRem,nombre:remNom,apellido:remAp,doc:remDoc,celular:remCel,email:v('cw-rem-email'),calle:remCalle,numero:remNum,entre:remEntre,cp:remCP},
@@ -629,11 +635,32 @@
       }
     };
 
+    // ── Foto del paquete (opcional): se sube aparte, después de crear el envío
+    function cwFotoSeleccionada() {
+      var inp = document.getElementById('cw-foto');
+      return inp && inp.files && inp.files[0] ? inp.files[0] : null;
+    }
+    // Body para crear el envío: la cotización + aviso de si viene foto (el mail a la empresa la espera)
+    function cwBodyEnvio() {
+      return JSON.stringify(Object.assign({}, window._cwCotizacion, { con_foto: !!cwFotoSeleccionada() }));
+    }
+    // Nunca lanza: si la foto falla, el envío ya está creado y el flujo sigue
+    async function cwSubirFoto(envioId) {
+      var file = cwFotoSeleccionada();
+      if (!file || !envioId) return;
+      try {
+        var fd = new FormData();
+        fd.append('foto', file);
+        var r = await fetch(API_BASE+'/api/widget/'+empresa+'/envios/'+envioId+'/foto', { method:'POST', body:fd });
+        if (!r.ok) console.warn('No se pudo subir la foto:', (await r.json().catch(function(){return {};})).error);
+      } catch(e) { console.warn('No se pudo subir la foto:', e.message); }
+    }
+
     // ── Registrar envío para pago en sucursal y habilitar PDF con el número real
     async function cwRegistrarSucursal() {
       var btn = document.getElementById('cw-btn-pdf');
       var codigo = document.getElementById('cw-codigo');
-      var key = JSON.stringify(window._cwCotizacion);
+      var key = cwBodyEnvio();
       var setListo = function(numero) {
         window._cwNumeroSucursal = numero;
         codigo.textContent = numero; codigo.style.opacity = '1';
@@ -648,6 +675,7 @@
         var d = await r.json();
         if (!r.ok) throw new Error(d.error||'Error al registrar el envío');
         window._cwSucursalKey = key;
+        await cwSubirFoto(d.id);
         setListo(d.numero_seguimiento);
       } catch(e) {
         btn.textContent = '⚠️ Error, tocá para reintentar';
@@ -668,9 +696,11 @@
       var load=document.getElementById('cw-pago-loading');
       btn.disabled=true; load.textContent='Redirigiendo a Mercado Pago...'; load.style.display='block';
       try {
-        var r=await fetch(API_BASE+'/api/pagos/'+empresa+'/crear',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(window._cwCotizacion)});
+        var r=await fetch(API_BASE+'/api/pagos/'+empresa+'/crear',{method:'POST',headers:{'Content-Type':'application/json'},body:cwBodyEnvio()});
         var d=await r.json();
         if(!r.ok) throw new Error(d.error||'Error al crear el pago');
+        // La foto se sube antes de redirigir: un File no se puede guardar en sessionStorage
+        if (cwFotoSeleccionada()) { load.textContent='Subiendo foto...'; await cwSubirFoto(d.id); load.textContent='Redirigiendo a Mercado Pago...'; }
         // Guardar cotización y estado antes de redirigir
         sessionStorage.setItem('cw_cotizacion', JSON.stringify(window._cwCotizacion));
         sessionStorage.setItem('cw_origen_url', window.location.href);
@@ -690,6 +720,7 @@
             valorDeclarado: document.getElementById('cw-valor-declarado')?.value,
             servicio: document.getElementById('cw-servicio')?.value,
             pago: document.getElementById('cw-pago')?.value,
+            descripcion: document.getElementById('cw-descripcion')?.value,
             remNom: document.getElementById('cw-rem-nom')?.value,
             remAp: document.getElementById('cw-rem-ap')?.value,
             remDoc: document.getElementById('cw-rem-doc')?.value,
@@ -896,9 +927,10 @@
       var qrBox=document.getElementById('cw-qr-box');
       btn.disabled=true; load.textContent='Generando QR...'; load.style.display='block'; qrBox.style.display='none';
       try {
-        var r=await fetch(API_BASE+'/api/pagos/'+empresa+'/crear',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(window._cwCotizacion)});
+        var r=await fetch(API_BASE+'/api/pagos/'+empresa+'/crear',{method:'POST',headers:{'Content-Type':'application/json'},body:cwBodyEnvio()});
         var d=await r.json();
         if(!r.ok) throw new Error(d.error||'Error al generar QR');
+        await cwSubirFoto(d.id);
         var img=document.getElementById('cw-qr-img');
         img.src='https://api.qrserver.com/v1/create-qr-code/?size=170x170&data='+encodeURIComponent(d.init_point);
         img.onload=function(){ load.style.display='none'; qrBox.style.display='block'; };
@@ -1007,6 +1039,7 @@
     if (c.destCalle) document.getElementById('cw-dest-calle').value = c.destCalle;
     if (c.destNum) document.getElementById('cw-dest-num').value = c.destNum;
     if (c.destCP) document.getElementById('cw-dest-cp').value = c.destCP;
+    if (c.descripcion) document.getElementById('cw-descripcion').value = c.descripcion;
     // Restaurar modalidad (botón activo + variable)
     cwSetModalidad(savedState.modalidad || 'deposito_sucursal');
     // Restaurar cotización guardada

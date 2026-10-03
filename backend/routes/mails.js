@@ -2,6 +2,7 @@ const { Resend } = require('resend');
 const db = require('../db');
 
 const FROM = process.env.MAIL_FROM || 'onboarding@resend.dev';
+const BASE_URL = process.env.BASE_URL || 'https://transporte-joaquin.onrender.com';
 const NARANJA = '#E8500A';
 const AZUL = '#0B1E3D';
 
@@ -44,6 +45,13 @@ const fila = (label, valor) => `
   <tr>
     <td style="padding:8px 0;color:#6b7280;font-size:14px;border-bottom:1px solid #eef0f3">${esc(label)}</td>
     <td style="padding:8px 0;color:${AZUL};font-size:14px;font-weight:600;text-align:right;border-bottom:1px solid #eef0f3">${esc(valor || '—')}</td>
+  </tr>`;
+
+// Igual que fila() pero el valor es un link (la URL se escapa igual)
+const filaLink = (label, url, texto) => `
+  <tr>
+    <td style="padding:8px 0;color:#6b7280;font-size:14px;border-bottom:1px solid #eef0f3">${esc(label)}</td>
+    <td style="padding:8px 0;font-size:14px;font-weight:600;text-align:right;border-bottom:1px solid #eef0f3"><a href="${esc(url)}" style="color:${NARANJA}">${esc(texto)}</a></td>
   </tr>`;
 
 const seccion = (titulo, filas) => `
@@ -151,6 +159,8 @@ const htmlNuevoEnvio = (e, emp, rem, dest, total, p) => layout(emp.nombre, 'Nuev
     fila('Modalidad', MODALIDADES[e.modalidad] || e.modalidad),
     fila('Forma de pago', PAGOS[e.forma_pago] || e.forma_pago),
   ])}
+  ${e.descripcion ? seccion('Contenido', [fila('Descripción', e.descripcion)]) : ''}
+  ${e.foto_url ? seccion('Foto del paquete', [filaLink('Foto', BASE_URL + e.foto_url, 'Ver foto del paquete →')]) : ''}
   ${e.precio_total != null ? seccion('Precio', [
     fila('Flete (sin IVA)', fmt(p.flete)),
     p.seguro > 0 ? fila(`Seguro (${p.seguroPct}%)`, fmt(p.seguro)) : '',
@@ -173,7 +183,7 @@ async function enviarMailNuevoEnvio(envioId, { precioConIva = false } = {}) {
 
     const { rows: [e] } = await db.query(
       `SELECT empresa_id, remitente_json, destinatario_json, origen, destino, peso_kg, valor_declarado,
-              precio_total, numero_seguimiento, forma_pago, modalidad, estado
+              precio_total, numero_seguimiento, forma_pago, modalidad, estado, descripcion, foto_url
        FROM widget_envios WHERE id = $1`,
       [envioId]
     );
@@ -208,6 +218,28 @@ async function enviarMailNuevoEnvio(envioId, { precioConIva = false } = {}) {
   } catch (err) {
     console.error('Error enviando mail de nuevo envío:', err);
   }
+}
+
+// Cuando el cliente adjunta foto, el widget la sube después de crear el envío.
+// Para que el mail incluya el link, se demora hasta que llegue la foto (liberarMailNuevoEnvio)
+// o hasta que venza la espera, lo que ocurra primero. Se manda una sola vez.
+// Si el server se reinicia durante la espera, ese mail se pierde.
+const ESPERA_FOTO_MS = 2 * 60 * 1000;
+const mailsPendientes = new Map(); // envioId -> { timer, opts }
+
+function programarMailNuevoEnvio(envioId, opts = {}) {
+  const timer = setTimeout(() => liberarMailNuevoEnvio(envioId), ESPERA_FOTO_MS);
+  mailsPendientes.set(envioId, { timer, opts });
+}
+
+// Manda el mail demorado si todavía está pendiente. Devuelve true si lo mandó.
+function liberarMailNuevoEnvio(envioId) {
+  const pendiente = mailsPendientes.get(envioId);
+  if (!pendiente) return false;
+  clearTimeout(pendiente.timer);
+  mailsPendientes.delete(envioId);
+  enviarMailNuevoEnvio(envioId, pendiente.opts);
+  return true;
 }
 
 // Nunca lanza: un error de mail no debe romper la confirmación del pago
@@ -265,4 +297,4 @@ async function enviarMailConfirmacion(envioId) {
   }
 }
 
-module.exports = { enviarMailConfirmacion, enviarMailNuevoEnvio };
+module.exports = { enviarMailConfirmacion, enviarMailNuevoEnvio, programarMailNuevoEnvio, liberarMailNuevoEnvio };

@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const { MercadoPagoConfig, Preference } = require('mercadopago');
 const db = require('../db');
-const { enviarMailConfirmacion, enviarMailNuevoEnvio } = require('./mails');
+const { enviarMailConfirmacion, enviarMailNuevoEnvio, programarMailNuevoEnvio } = require('./mails');
 
 // Cada empresa tiene su propio Access Token de MP
 // Por ahora usamos el de la plataforma, después cada empresa configura el suyo
@@ -85,8 +85,8 @@ router.post('/:slug/crear', async (req, res) => {
     const { rows: [envio] } = await db.query(
       `INSERT INTO widget_envios
         (empresa_id, origen, destino, peso_kg, volumen_m3, alto_cm, ancho_cm, largo_cm, bultos, tipo_servicio, precio_total,
-          numero_seguimiento, estado, remitente_json, destinatario_json, modalidad, forma_pago, valor_declarado)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'pendiente_pago',$13,$14,$15,$16,$17)
+          numero_seguimiento, estado, remitente_json, destinatario_json, modalidad, forma_pago, valor_declarado, descripcion)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'pendiente_pago',$13,$14,$15,$16,$17,$18)
       RETURNING id`,
       [empresa.id, origen, destino, peso_kg, volumen_m3 || 0,
       alto_cm || null, ancho_cm || null, largo_cm || null, bultos || 1,
@@ -94,7 +94,7 @@ router.post('/:slug/crear', async (req, res) => {
       numero,
       JSON.stringify(remitente || {}),
       JSON.stringify(destinatario || {}),
-      modalidad, pago, req.body.valor_declarado ?? null]
+      modalidad, pago, req.body.valor_declarado ?? null, (req.body.descripcion || '').trim() || null]
     );
 
     const baseUrl = process.env.FRONTEND_URL || 'https://transporte-joaquin.onrender.com';
@@ -120,12 +120,15 @@ router.post('/:slug/crear', async (req, res) => {
       }
     });
 
-    enviarMailNuevoEnvio(envio.id);
+    // Si el cliente adjuntó foto, el mail espera a que se suba (ver programarMailNuevoEnvio)
+    if (req.body.con_foto) programarMailNuevoEnvio(envio.id);
+    else enviarMailNuevoEnvio(envio.id);
     res.json({
       preference_id: result.id,
       init_point: result.init_point,
       sandbox_init_point: result.sandbox_init_point,
       numero_seguimiento: numero,
+      id: envio.id,
     });
   } catch (e) {
     console.error('MP error:', e);
@@ -158,8 +161,8 @@ router.post('/:slug/sucursal', async (req, res) => {
     const { rows: [envio] } = await db.query(
       `INSERT INTO widget_envios
         (empresa_id, origen, destino, peso_kg, volumen_m3, alto_cm, ancho_cm, largo_cm, bultos, tipo_servicio, precio_total,
-          numero_seguimiento, estado, remitente_json, destinatario_json, modalidad, forma_pago, valor_declarado)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'pendiente_pago',$13,$14,$15,'sucursal',$16)
+          numero_seguimiento, estado, remitente_json, destinatario_json, modalidad, forma_pago, valor_declarado, descripcion)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'pendiente_pago',$13,$14,$15,'sucursal',$16,$17)
       RETURNING id`,
       [empresa.id, origen, destino, peso_kg, volumen_m3 || 0,
       alto_cm || null, ancho_cm || null, largo_cm || null, bultos || 1,
@@ -167,11 +170,12 @@ router.post('/:slug/sucursal', async (req, res) => {
       numero,
       JSON.stringify(remitente || {}),
       JSON.stringify(destinatario || {}),
-      modalidad, req.body.valor_declarado ?? null]
+      modalidad, req.body.valor_declarado ?? null, (req.body.descripcion || '').trim() || null]
     );
 
-    enviarMailNuevoEnvio(envio.id);
-    res.json({ numero_seguimiento: numero });
+    if (req.body.con_foto) programarMailNuevoEnvio(envio.id);
+    else enviarMailNuevoEnvio(envio.id);
+    res.json({ numero_seguimiento: numero, id: envio.id });
   } catch (e) {
     console.error('Sucursal error:', e);
     res.status(500).json({ error: e.message });

@@ -69,3 +69,7 @@ ALTER TABLE widget_envios ADD COLUMN IF NOT EXISTS valor_declarado NUMERIC(12,2)
 
 -- Seguro sobre valor declarado
 ALTER TABLE empresas ADD COLUMN IF NOT EXISTS seguro_porcentaje NUMERIC(5,2) DEFAULT 0;
+
+-- Descripción y foto del paquete
+ALTER TABLE widget_envios ADD COLUMN IF NOT EXISTS descripcion TEXT;
+ALTER TABLE widget_envios ADD COLUMN IF NOT EXISTS foto_url TEXT;

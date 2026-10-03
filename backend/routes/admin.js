@@ -2,6 +2,7 @@ const router = require('express').Router();
 const db = require('../db');
 const { authMiddleware } = require('../middleware/auth');
 const { enviarMailNuevoEnvio } = require('./mails');
+const { uploadFoto, descartarArchivo } = require('../middleware/upload');
 
 // Todas las rutas del panel admin requieren JWT válido
 router.use(authMiddleware);
@@ -149,7 +150,7 @@ router.get('/envios', async (req, res) => {
       `SELECT id, numero_seguimiento, origen, destino, tipo_servicio,
          estado, precio_total, created_at,
          modalidad, forma_pago, peso_kg, bultos, largo_cm, ancho_cm, alto_cm,
-         valor_declarado, remitente_json, destinatario_json
+         valor_declarado, remitente_json, destinatario_json, descripcion, foto_url
        FROM widget_envios WHERE empresa_id = $1
        ORDER BY created_at DESC LIMIT 100`,
       [req.empresa.id]
@@ -276,6 +277,26 @@ router.delete('/envios/:id', async (req, res) => {
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
+// POST /api/admin/envios/:id/foto — subir o reemplazar la foto del paquete desde el panel
+router.post('/envios/:id/foto', uploadFoto, async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No se recibió ninguna foto' });
+    const fotoUrl = '/uploads/' + req.file.filename;
+    const { rows } = await db.query(
+      'UPDATE widget_envios SET foto_url = $1 WHERE id = $2 AND empresa_id = $3 RETURNING id',
+      [fotoUrl, req.params.id, req.empresa.id]
+    );
+    if (!rows.length) {
+      descartarArchivo(req.file);
+      return res.status(404).json({ error: 'Envío no encontrado' });
+    }
+    res.json({ foto_url: fotoUrl });
+  } catch (e) {
+    descartarArchivo(req.file);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── CARGA MANUAL DE ENVÍO ─────────────────────────────────────
 router.post('/envios/manual', async (req, res) => {
   const { origen, destino, modalidad, tipo_servicio, forma_pago, peso_kg, bultos, precio_total, valor_declarado, remitente, destinatario } = req.body;
@@ -320,14 +341,14 @@ router.post('/envios/manual', async (req, res) => {
       `INSERT INTO widget_envios
         (empresa_id, numero_seguimiento, origen, destino, modalidad, tipo_servicio, forma_pago,
         peso_kg, bultos, largo_cm, ancho_cm, alto_cm, precio_total, estado, remitente_json, destinatario_json,
-        valor_declarado)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING id, numero_seguimiento`,
+        valor_declarado, descripcion)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING id, numero_seguimiento`,
       [req.empresa.id, numero, origen, destino, modalidadFinal,
       tipo_servicio || 'estandar', forma_pago || 'origen',
       peso_kg, bultos || 1, req.body.largo_cm || null, req.body.ancho_cm || null, req.body.alto_cm || null,
       precio || null,
       estado,
-      remJson, destJson, parseFloat(valor_declarado)]
+      remJson, destJson, parseFloat(valor_declarado), (req.body.descripcion || '').trim() || null]
     );
 
     await db.query(

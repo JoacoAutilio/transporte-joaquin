@@ -361,6 +361,7 @@ tr:last-child td{border-bottom:none}
         <div class="form-row"><label>Ancho (cm)</label><input type="number" id="ne-ancho" placeholder="opcional" min="0"></div>
         <div class="form-row"><label>Alto (cm)</label><input type="number" id="ne-alto" placeholder="opcional" min="0"></div>
         <div class="form-row"><label>Valor declarado ($) *</label><input type="number" id="ne-valor-declarado" placeholder="0" min="1" step="1"></div>
+        <div class="form-row"><label>Descripción del contenido (opcional)</label><input type="text" id="ne-descripcion" placeholder="Ej: ropa, electrodoméstico..." maxlength="300"></div>
         <div class="form-row"><label>Precio total (ARS)</label><input type="number" id="ne-precio" placeholder="Se calcula automático" min="0"></div>
       </div>
       <hr style="border:none;border-top:1px solid var(--bd);margin:14px 0">
@@ -904,7 +905,7 @@ async function abrirNuevoEnvio() {
   // Limpiar campos
   ['ne-rem-nom','ne-rem-ap','ne-rem-doc','ne-rem-cel','ne-rem-email','ne-rem-dir',
    'ne-dest-nom','ne-dest-ap','ne-dest-doc','ne-dest-cel','ne-dest-email','ne-dest-dir',
-   'ne-peso','ne-bultos','ne-precio','ne-valor-declarado'].forEach(id => {
+   'ne-peso','ne-bultos','ne-precio','ne-valor-declarado','ne-descripcion'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = id === 'ne-bultos' ? '1' : '';
   });
@@ -986,6 +987,7 @@ async function guardarNuevoEnvio() {
     alto_cm: parseFloat(document.getElementById('ne-alto').value) || null,
     precio_total: parseFloat(document.getElementById('ne-precio').value) || null,
     valor_declarado: valorDeclarado,
+    descripcion: document.getElementById('ne-descripcion').value.trim() || null,
     remitente: { nombre: remNom, apellido: remAp, doc: remDoc, celular: remCel, email: document.getElementById('ne-rem-email').value.trim(), direccion: document.getElementById('ne-rem-dir').value.trim() },
     destinatario: { nombre: destNom, apellido: destAp, doc: destDoc, celular: destCel, email: document.getElementById('ne-dest-email').value.trim(), direccion: document.getElementById('ne-dest-dir').value.trim() }
   };
@@ -1155,6 +1157,13 @@ function verDetalleEnvio(id) {
         ${deFila('Precio total', deMoney(e.precio_total))}
       </div>
     </div>
+    ${e.descripcion || e.foto_url ? `
+      ${deTitulo('📦 Contenido')}
+      ${e.descripcion ? deFila('Descripción', e.descripcion) : ''}
+      ${e.foto_url ? `<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--bd);font-size:13px">
+        <span style="color:var(--mt)">Foto del paquete</span>
+        <a href="${deEsc(API + e.foto_url)}" target="_blank" rel="noopener"><img src="${deEsc(API + e.foto_url)}" alt="Foto del paquete" style="max-width:180px;border-radius:8px;border:1px solid #e5e7eb;display:block"></a>
+      </div>` : ''}` : ''}
     <div class="form-grid-2" style="gap:0 24px">
       ${dePersona('👤 Remitente', rem)}
       ${dePersona('📍 Destinatario', dest)}

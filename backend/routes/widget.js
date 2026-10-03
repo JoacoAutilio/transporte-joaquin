@@ -1,5 +1,7 @@
 const router = require('express').Router();
 const db = require('../db');
+const { uploadFoto, descartarArchivo } = require('../middleware/upload');
+const { liberarMailNuevoEnvio } = require('./mails');
 
 router.get('/:slug/config', async (req, res) => {
   res.header('Access-Control-Allow-Origin', '*');
@@ -104,6 +106,34 @@ router.options('/:slug/cotizar', (req, res) => {
   res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type');
   res.sendStatus(200);
+});
+
+// POST /api/widget/:slug/envios/:id/foto — foto del paquete subida desde el widget (público).
+// Para que no sirva como hosting abierto: el envío tiene que ser de esa empresa,
+// no tener foto todavía y haberse creado hace menos de 1 hora.
+router.post('/:slug/envios/:id/foto', uploadFoto, async (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No se recibió ninguna foto' });
+    const fotoUrl = '/uploads/' + req.file.filename;
+    const { rows: [envio] } = await db.query(
+      `UPDATE widget_envios e SET foto_url = $1
+       FROM empresas emp
+       WHERE e.id = $2 AND e.empresa_id = emp.id AND emp.slug = $3
+         AND e.foto_url IS NULL AND e.created_at > NOW() - INTERVAL '1 hour'
+       RETURNING e.id`,
+      [fotoUrl, req.params.id, req.params.slug]
+    );
+    if (!envio) {
+      descartarArchivo(req.file);
+      return res.status(404).json({ error: 'Envío no encontrado o ya tiene foto' });
+    }
+    liberarMailNuevoEnvio(envio.id); // si el mail estaba esperando la foto, sale ahora
+    res.json({ foto_url: fotoUrl });
+  } catch (e) {
+    descartarArchivo(req.file);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 module.exports = router;
