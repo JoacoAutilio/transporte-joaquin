@@ -147,7 +147,9 @@ router.get('/envios', async (req, res) => {
   try {
     const { rows } = await db.query(
       `SELECT id, numero_seguimiento, origen, destino, tipo_servicio,
-         estado, precio_total, created_at
+         estado, precio_total, created_at,
+         modalidad, forma_pago, peso_kg, bultos, largo_cm, ancho_cm, alto_cm,
+         valor_declarado, remitente_json, destinatario_json
        FROM widget_envios WHERE empresa_id = $1
        ORDER BY created_at DESC LIMIT 100`,
       [req.empresa.id]

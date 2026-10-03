@@ -391,6 +391,19 @@ tr:last-child td{border-bottom:none}
   </div>
 </div>
 
+<!-- MODAL DETALLE ENVÍO -->
+<div class="mo" id="mo-detalle-envio">
+  <div class="mo-box" style="max-width:760px">
+    <div class="mo-hdr"><h3>Detalle del envío</h3><button class="mo-close" onclick="closeMo('mo-detalle-envio')">✕</button></div>
+    <div class="mo-body">
+      <div id="de-contenido"></div>
+      <div style="display:flex;justify-content:flex-end;margin-top:16px">
+        <button class="btn" onclick="closeMo('mo-detalle-envio')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL TARIFA -->
 <div class="mo" id="mo-tarifa">
   <div class="mo-box">
@@ -1055,13 +1068,97 @@ function renderEnvios(envios) {
       <td><span style="background:${col}22;color:${col};padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">${label}</span></td>
       <td style="font-size:12px">${fecha}</td>
       <td>
-                <button class="btn btn-sm btn-or" onclick="abrirEstado(${e.id},'${e.numero_seguimiento}','${e.origen}','${e.destino}','${e.estado}')">Actualizar</button>
+        <button class="btn btn-sm" onclick="verDetalleEnvio(${e.id})" style="background:#0B1E3D;color:#fff;border:1px solid #0B1E3D;margin-right:4px">Ver detalle</button>
+        <button class="btn btn-sm btn-or" onclick="abrirEstado(${e.id},'${e.numero_seguimiento}','${e.origen}','${e.destino}','${e.estado}')">Actualizar</button>
         ${e.estado === 'confirmado' ? `<button class="btn btn-sm" onclick="abrirRemito(${e.id},'${e.numero_seguimiento}')" style="background:#0B1E3D22;color:#0B1E3D;border:1px solid #0B1E3D;margin-left:4px">📋 Remito</button>` : ''}
         ${e.estado !== 'cancelado' ? `<button class="btn btn-sm" onclick="cancelarEnvio(${e.id},'${e.numero_seguimiento}')" style="background:#ef444422;color:#ef4444;border:1px solid #ef4444;margin-left:4px">Cancelar</button>` : ''}
         ${e.estado === 'cancelado' ? `<button class="btn btn-sm" onclick="eliminarEnvio(${e.id},'${e.numero_seguimiento}')" style="background:#6b728022;color:#6b7280;border:1px solid #6b7280;margin-left:4px">🗑 Eliminar</button>` : ''}
       </td>
     </tr>`;
   }).join('');
+}
+
+// ── DETALLE DE ENVÍO ──────────────────────────────────────────
+const DE_MODALIDADES = { deposito_sucursal: 'Depósito → Sucursal', deposito_domicilio: 'Depósito → Domicilio', domicilio_domicilio: 'Domicilio → Domicilio' };
+const DE_SERVICIOS   = { estandar: 'Estándar', express: 'Express 48hs', consolidado: 'Consolidado' };
+const DE_PAGOS       = { origen: 'Pago en origen', destino: 'Pago en destino', sucursal: 'Pago en sucursal' };
+
+function deEsc(v) {
+  if (v === null || v === undefined || v === '') return '—';
+  return String(v).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+function deParse(v) {
+  if (!v) return {};
+  if (typeof v === 'object') return v;
+  try { return JSON.parse(v); } catch { return {}; }
+}
+function deMoney(n) { return n === null || n === undefined || n === '' ? null : '$' + Math.round(Number(n)).toLocaleString('es-AR'); }
+// Widget guarda calle/numero/entre/cp; la carga manual guarda "direccion" en texto libre
+function deDireccion(p) {
+  if (p.direccion) return p.direccion;
+  const base = [p.calle, p.numero].filter(Boolean).join(' ');
+  if (!base) return null;
+  return base + (p.entre ? ', entre ' + p.entre : '') + (p.cp ? ' (CP ' + p.cp + ')' : '');
+}
+function deFila(label, valor) {
+  return `<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--bd);font-size:13px">
+    <span style="color:var(--mt)">${label}</span><span style="font-weight:600;text-align:right">${deEsc(valor)}</span></div>`;
+}
+function deTitulo(t) {
+  return `<div style="font-size:12px;font-weight:700;color:var(--mt);text-transform:uppercase;margin:14px 0 4px">${t}</div>`;
+}
+function dePersona(titulo, p) {
+  return `<div>${deTitulo(titulo)}
+    ${deFila('Nombre', p.nombre)}
+    ${deFila('Apellido', p.apellido)}
+    ${deFila('DNI/CUIT', p.doc)}
+    ${deFila('Celular', p.celular || p.telefono)}
+    ${deFila('Email', p.email)}
+    ${deFila('Dirección', deDireccion(p))}
+  </div>`;
+}
+
+function verDetalleEnvio(id) {
+  const e = todosEnvios.find(x => x.id === id);
+  if (!e) return;
+  const rem  = deParse(e.remitente_json);
+  const dest = deParse(e.destinatario_json);
+  const col  = ESTADO_COLORS[e.estado] || '#6b7280';
+  const dims = [e.largo_cm, e.ancho_cm, e.alto_cm].some(v => v)
+    ? [e.largo_cm, e.ancho_cm, e.alto_cm].map(v => v ? Number(v) : '—').join(' × ') + ' cm'
+    : null;
+
+  document.getElementById('de-contenido').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:20px;font-weight:800;color:var(--navy);font-family:monospace">${deEsc(e.numero_seguimiento)}</div>
+        <div style="font-size:12px;color:var(--mt)">${e.created_at ? new Date(e.created_at).toLocaleString('es-AR') : '—'}</div>
+      </div>
+      <span style="background:${col}22;color:${col};padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600">${deEsc(ESTADO_LABELS[e.estado] || e.estado)}</span>
+    </div>
+    <div class="form-grid-2" style="gap:0 24px">
+      <div>
+        ${deTitulo('Envío')}
+        ${deFila('Origen', e.origen)}
+        ${deFila('Destino', e.destino)}
+        ${deFila('Modalidad', DE_MODALIDADES[e.modalidad] || e.modalidad)}
+        ${deFila('Servicio', DE_SERVICIOS[e.tipo_servicio] || e.tipo_servicio)}
+        ${deFila('Forma de pago', DE_PAGOS[e.forma_pago] || e.forma_pago)}
+      </div>
+      <div>
+        ${deTitulo('Paquete')}
+        ${deFila('Peso', e.peso_kg != null ? Number(e.peso_kg) + ' kg' : null)}
+        ${deFila('Bultos', e.bultos)}
+        ${deFila('Dimensiones (L × A × H)', dims)}
+        ${deFila('Valor declarado', deMoney(e.valor_declarado))}
+        ${deFila('Precio total', deMoney(e.precio_total))}
+      </div>
+    </div>
+    <div class="form-grid-2" style="gap:0 24px">
+      ${dePersona('👤 Remitente', rem)}
+      ${dePersona('📍 Destinatario', dest)}
+    </div>`;
+  openMo('mo-detalle-envio');
 }
 
 let filtroEstadoActual = '';
